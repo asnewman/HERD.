@@ -7,8 +7,8 @@ const k = kaboom({
 });
 
 // Load the sprites
-k.loadSprite("base", "sprites/grass.png");
-k.loadSprite("path", "sprites/path.png");
+k.loadSprite("base", "https://i.imgur.com/lhnPeoD.png");
+k.loadSprite("path", "https://i.imgur.com/3IfVfmj.png");
 
 k.scene("main", () => {
   createMap();
@@ -18,7 +18,10 @@ k.scene("main", () => {
   });
 });
 
-k.start("main");
+k.go("main");
+
+const baseScale = 0.1; // 50% of the original size
+const pathScale = 0.1; // 50% of the original size
 
 /**
  * Creates a map with two bases and a zigzag path connecting them.
@@ -28,8 +31,15 @@ k.start("main");
  */
 function createMap() {
   // Place the bases
-  k.add([k.sprite("base"), k.pos(10, 10)]);
-  k.add([k.sprite("base"), k.pos(k.width() - 110, k.height() - 110)]);
+  const base1 = k.add([k.sprite("base"), k.pos(10, 10)]);
+  const base2 = k.add([
+    k.sprite("base"),
+    k.pos(k.width() - 110, k.height() - 110),
+  ]);
+
+  // Scale the bases
+  base1.scale = k.vec2(baseScale);
+  base2.scale = k.vec2(baseScale);
 
   // Draw the zigzag path
   const pathWidth = 20;
@@ -40,9 +50,14 @@ function createMap() {
     const xPos = 10 + i * zigzagSpacing;
 
     if (i % 2 === 0) {
-      k.add([k.sprite("path"), k.pos(xPos, 10 + pathWidth)]);
+      const path = k.add([k.sprite("path"), k.pos(xPos, 10 + pathWidth)]);
+      path.scale = k.vec2(pathScale);
     } else {
-      k.add([k.sprite("path"), k.pos(xPos, k.height() - 30 - pathWidth)]);
+      const path = k.add([
+        k.sprite("path"),
+        k.pos(xPos, k.height() - 30 - pathWidth),
+      ]);
+      path.scale = k.vec2(pathScale);
     }
   }
 }
