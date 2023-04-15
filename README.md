@@ -1,3 +1,3 @@
 # HERD.
 
-A game, eventually.
+A game, eventually. For fun!
