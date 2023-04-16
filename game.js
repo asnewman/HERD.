@@ -2,6 +2,9 @@ kaboom();
 
 // load sprites
 loadSprite("sheep", "sprites/lolsheep.jpg");
+loadSprite("base", "sprites/base.png");
+loadSprite("path", "sprites/path.png");
+loadSprite("empty", "sprites/empty.png");
 
 const SCENES = {
   menu: "menu",
@@ -28,6 +31,25 @@ scene(SCENES.menu, () => {
 });
 
 scene(SCENES.mapGeneration, () => {
+  addLevel([
+    'x--          ',
+    '  |          ',
+    '  |          ',
+    '  |----      ',
+    '      |      ',
+    '      |      ',
+    '   ---|      ',
+    '   |         ',
+    '   |-----    ',
+    '        |---x',
+  ], {
+    width: 32,
+    height: 32,
+    'x': () => [sprite('base')],
+    '-': () => [sprite('path')],
+    '|': () => [sprite('path')],
+    ' ': () => [sprite('empty')],
+  })
   setTimeout(() => alert("I'm the map!"));
 });
 
