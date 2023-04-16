@@ -78,9 +78,10 @@ scene(SCENES.mapGeneration, () => {
 });
 
 scene(SCENES.sheepConfig, () => {
-  burp();
-  add([sprite(SPRITES.sheep)]);
-  setTimeout(() => alert("baaaa"));
+  createSheep({
+    name: "sheep1",
+    pos: vec2(0, 0),
+  });
 });
 
 go(SCENES.menu);
@@ -106,7 +107,7 @@ function createSheep(options) {
   const sheep = add([
     options.name,
     options.pos,
-    // sprite(SPRITES.sheep),
+    sprite(SPRITES.sheep),
 
     state(
       options.initialState || SHEEP_STATES.grazing,
@@ -120,6 +121,8 @@ function createSheep(options) {
     // - play grazing animation
     // - randomly shuffle around
   });
+
+  setTimeout(() => alert("baaaa"));
 
   return sheep;
 }
