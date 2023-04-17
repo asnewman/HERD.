@@ -12,6 +12,11 @@ var gameState = {
    * and we'll ensure that its name is unique.
    */
   sheep: {},
+  /**
+   * The sheep that are currently selected
+   * WeakSet<Sheep>
+   */
+  sheepSelected: new WeakSet(),
 };
 
 const SPRITES = {
@@ -27,14 +32,32 @@ loadSprite(SPRITES.base, "sprites/base.png");
 loadSprite(SPRITES.path, "sprites/path.png");
 loadSprite(SPRITES.empty, "sprites/empty.png");
 
-loadSprite(SPRITES.sheep, "sprites/spritesheet-sheep.png", {
-  sliceX: 3,
-  sliceY: 2,
-  anims: {
-    graze: {
-      loop: true,
-      from: 0,
-      to: 5,
+// loadSprite(SPRITES.sheep, "sprites/spritesheet-sheep.png", {
+//   sliceX: 3,
+//   sliceY: 2,
+//   anims: {
+//     graze: {
+//       loop: true,
+//       from: 0,
+//       to: 5,
+//     },
+//   },
+// });
+
+loadSpriteAtlas("sprites/spritesheet-sheep.png", {
+  [SPRITES.sheep]: {
+    x: 0,
+    y: 0,
+    width: 96,
+    height: 64,
+    sliceX: 3,
+    sliceY: 2,
+    anims: {
+      graze: {
+        loop: true,
+        from: 0,
+        to: 5,
+      },
     },
   },
 });
@@ -127,6 +150,16 @@ scene(SCENES.sheepConfig, () => {
       });
     }
   }
+
+  // onDraw(() => {
+  //   drawRect({
+  //     width: 120,
+  //     height: 240,
+  //     pos: vec2(20, 20),
+  //     color: YELLOW,
+  //     outline: { color: BLACK, width: 4 },
+  //   });
+  // });
 });
 
 go(SCENES.menu);
@@ -154,8 +187,36 @@ function createSheep(options) {
     throw new Error("Sheep must have a position");
   }
 
+  // Components are just functions that returns an object that follows a certain format
+  function selectable() {
+    let isSelected = false;
+    return {
+      id: "selectable",
+      require: ["area"],
+      draw() {
+        if (!isSelected) return;
+        // TODO: need to fix bounding box of the sheep
+        drawRect({
+          width: 32,
+          height: 32,
+          pos: vec2(0, 0),
+          fill: false,
+          outline: { color: RED, width: 1 },
+        });
+      },
+      inspect() {
+        return String(isSelected);
+      },
+      setSelected(value) {
+        isSelected = value;
+      },
+    };
+  }
+
+  const sheepTag = `sheep-${options.name}`;
+
   const sheep = add([
-    options.name,
+    sheepTag,
     pos(...options.pos),
     sprite(SPRITES.sheep, { animSpeed: SHEEP_ANIM_SPEED }),
     scale(3, 3),
@@ -164,6 +225,7 @@ function createSheep(options) {
       Object.values(SHEEP_STATES)
     ),
     area(),
+    selectable(),
   ]);
 
   const sheepState = {
@@ -253,5 +315,22 @@ function createSheep(options) {
 
   gameState.sheep[options.name] = sheep;
 
-  return sheep;
+  const props = {
+    isSelected: () => gameState.sheepSelected.has(sheep),
+    toggleSelected: () => {
+      const wasAlreadySelected = gameState.sheepSelected.has(sheep);
+
+      wasAlreadySelected
+        ? gameState.sheepSelected.delete(sheep)
+        : gameState.sheepSelected.add(sheep);
+
+      sheep.setSelected(!wasAlreadySelected);
+    },
+  };
+
+  onClick(sheepTag, () => {
+    props.toggleSelected();
+  });
+
+  return props;
 }
