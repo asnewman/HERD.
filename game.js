@@ -28,8 +28,6 @@ const SPRITES = {
 };
 
 // load sprites
-loadSprite(SPRITES.base, "sprites/base.png");
-loadSprite(SPRITES.path, "sprites/path.png");
 loadSprite(SPRITES.empty, "sprites/empty.png");
 
 loadSpriteAtlas("sprites/spritesheet-sheep.png", {
@@ -63,6 +61,19 @@ loadSpriteAtlas("sprites/spritesheet-env.png", {
     width: 32,
     height: 32,
   },
+  [SPRITES.base]: {
+    x: 96,
+    y: 16,
+    width: 48,
+    height: 48
+  },
+  [SPRITES.path]: {
+    x: 144,
+    y: 32,
+    height: 16,
+    width: 16,
+    scale: 2,
+  }
 });
 
 const SCENES = {
@@ -89,9 +100,7 @@ scene(SCENES.menu, () => {
   });
 });
 
-scene(SCENES.mapGeneration, () => {
-  addLevel(
-    [
+const map = [
       "x--          ",
       "  |          ",
       "  |          ",
@@ -102,17 +111,22 @@ scene(SCENES.mapGeneration, () => {
       "   |         ",
       "   |-----    ",
       "        |---x",
-    ],
+    ]
+
+scene(SCENES.mapGeneration, () => {
+  addLevel(
+    map,
     {
-      width: 32,
-      height: 32,
-      x: () => [sprite(SPRITES.base)],
-      "-": () => [sprite(SPRITES.path)],
-      "|": () => [sprite(SPRITES.path)],
-      " ": () => [sprite(SPRITES.empty)],
+      tileWidth: 32,
+      tileHeight: 32,
+      tiles: {
+        x: () => [sprite(SPRITES.base)],
+        "-": () => [sprite(SPRITES.path)],
+        "|": () => [sprite(SPRITES.path)],
+        // " ": () => [sprite(SPRITES.empty)],
+      }
     }
   );
-  setTimeout(() => alert("I'm the map!"));
 });
 
 scene(SCENES.sheepConfig, () => {
@@ -136,6 +150,7 @@ scene(SCENES.sheepConfig, () => {
 });
 
 go(SCENES.sheepConfig);
+// go(SCENES.mapGeneration);
 
 const SHEEP_STATES = {
   grazing: "grazing",
