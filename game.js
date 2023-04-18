@@ -13,14 +13,15 @@ var gameState = {
    */
   sheep: {},
   /**
-   * The sheep that are currently selected
-   * WeakSet<Sheep>
+   * A set of the names of the sheep that are currently selected.
+   * Set<string>
    */
-  sheepSelected: new WeakSet(),
+  sheepSelected: new Set(),
 };
 
 const SPRITES = {
   sheep: "sheep",
+  sheepBomber: "sheepBomber",
   base: "base",
   path: "path",
   empty: "empty",
@@ -30,28 +31,33 @@ const SPRITES = {
 // load sprites
 loadSprite(SPRITES.empty, "sprites/empty.png");
 
-loadSpriteAtlas("sprites/spritesheet-sheep.png", {
-  [SPRITES.sheep]: {
-    x: 0,
-    y: 0,
-    width: 96,
-    height: 64,
-    frames: [
-      quad(0, 15, 32, 17),
-      quad(32, 16, 32, 16),
-      quad(64, 16, 32, 16),
-      quad(0, 16, 32, 16),
-      quad(32, 16, 32, 16),
-      quad(64, 16, 32, 16),
-    ],
-    anims: {
-      graze: {
-        loop: true,
-        from: 0,
-        to: 5,
-      },
+const sheepAtlasSettings = {
+  x: 0,
+  y: 0,
+  width: 96,
+  height: 64,
+  frames: [
+    quad(0, 15, 32, 17),
+    quad(32, 16, 32, 16),
+    quad(64, 16, 32, 16),
+    quad(0, 16, 32, 16),
+    quad(32, 16, 32, 16),
+    quad(64, 16, 32, 16),
+  ],
+  anims: {
+    graze: {
+      loop: true,
+      from: 0,
+      to: 5,
     },
   },
+};
+
+loadSpriteAtlas("sprites/spritesheet-sheep.png", {
+  [SPRITES.sheep]: sheepAtlasSettings,
+});
+loadSpriteAtlas("sprites/spritesheet-sheep-bomber.png", {
+  [SPRITES.sheepBomber]: sheepAtlasSettings,
 });
 
 loadSpriteAtlas("sprites/spritesheet-env.png", {
@@ -147,6 +153,55 @@ scene(SCENES.sheepConfig, () => {
       });
     }
   }
+
+  const onSheepTypeClick = (type) => () => {
+    for (const sheepName of gameState.sheepSelected) {
+      const sheep = gameState.sheep[sheepName];
+      const flipXBefore = sheep.flipX;
+      const frameBefore = sheep.frame;
+      if (!sheep) continue;
+      sheep.setType(type);
+      sheep.flipX = flipXBefore;
+      sheep.frame = frameBefore;
+      sheep.play("graze");
+      sheep.toggleSelected();
+      gameState.sheepSelected.delete(sheepName);
+    }
+  };
+
+  const sheepTypeButtonPadding = 30;
+
+  addButton("Bomber", {
+    pos: (w) =>
+      vec2(width() - w - sheepTypeButtonPadding, sheepTypeButtonPadding),
+    colorText: BLACK,
+    colorBackground: WHITE,
+    onClick: onSheepTypeClick("bomber"),
+  });
+  addButton("Shielder", {
+    pos: (w, h) =>
+      vec2(
+        width() - w - sheepTypeButtonPadding,
+        sheepTypeButtonPadding + h + sheepTypeButtonPadding
+      ),
+    colorText: BLACK,
+    colorBackground: WHITE,
+    onClick: onSheepTypeClick("shielder"),
+  });
+  addButton("Commando", {
+    pos: (w, h) =>
+      vec2(
+        width() - w - sheepTypeButtonPadding,
+        sheepTypeButtonPadding +
+          h +
+          sheepTypeButtonPadding +
+          h +
+          sheepTypeButtonPadding
+      ),
+    colorText: BLACK,
+    colorBackground: WHITE,
+    onClick: onSheepTypeClick("commando"),
+  });
 });
 
 go(SCENES.sheepConfig);
@@ -196,12 +251,30 @@ function createSheep(options) {
       setSelected(value) {
         isSelected = value;
       },
+      setType(type) {
+        if (type === "bomber") {
+          this.use(sprite(SPRITES.sheepBomber));
+          return;
+        }
+
+        this.use(sprite(SPRITES.sheep));
+      },
+      toggleSelected() {
+        const wasAlreadySelected = gameState.sheepSelected.has(sheep.name);
+
+        wasAlreadySelected
+          ? gameState.sheepSelected.delete(sheep.name)
+          : gameState.sheepSelected.add(sheep.name);
+
+        this.setSelected(!wasAlreadySelected);
+      },
     };
   }
 
   const sheepTag = `sheep-${options.name}`;
-
   const sheep = add([
+    "sheep",
+    { name: options.name },
     sheepTag,
     pos(...options.pos),
     sprite(SPRITES.sheep, { animSpeed: SHEEP_ANIM_SPEED }),
@@ -212,6 +285,7 @@ function createSheep(options) {
     ),
     area(),
     selectable(),
+    body(),
   ]);
 
   const sheepState = {
@@ -245,6 +319,13 @@ function createSheep(options) {
     };
     sheep.flipX = sheepState.grazing.direction === "left";
     sheep.play("graze");
+  });
+
+  // prevent each sheep from colliding with other sheep
+  sheep.onCollide("sheep", () => {
+    sheepState.grazing.direction = "idle";
+    sheepState.grazing.cycleTime = 0;
+    sheepState.grazing.cycleTimeLimit = getDirectionTimeLimit();
   });
 
   sheep.onStateUpdate(SHEEP_STATES.grazing, () => {
@@ -303,13 +384,13 @@ function createSheep(options) {
   gameState.sheep[options.name] = sheep;
 
   const props = {
-    isSelected: () => gameState.sheepSelected.has(sheep),
+    isSelected: () => gameState.sheepSelected.has(sheep.name),
     toggleSelected: () => {
-      const wasAlreadySelected = gameState.sheepSelected.has(sheep);
+      const wasAlreadySelected = gameState.sheepSelected.has(sheep.name);
 
       wasAlreadySelected
-        ? gameState.sheepSelected.delete(sheep)
-        : gameState.sheepSelected.add(sheep);
+        ? gameState.sheepSelected.delete(sheep.name)
+        : gameState.sheepSelected.add(sheep.name);
 
       sheep.setSelected(!wasAlreadySelected);
     },
