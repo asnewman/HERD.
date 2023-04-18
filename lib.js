@@ -50,7 +50,11 @@ function addButton(textValue, options) {
   const buttonComponents = [
     tag,
     rect(formattedText.width, formattedText.height),
-    pos(options.pos || vec2(0, 0)),
+    pos(
+      typeof options.pos === "function"
+        ? options.pos(formattedText.width, formattedText.height)
+        : options.pos || vec2(0, 0)
+    ),
     outline(...(options.colorOutline || [2, BLACK])),
     color(options.colorBackground || WHITE),
     buttonText({
