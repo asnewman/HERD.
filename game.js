@@ -32,18 +32,6 @@ loadSprite(SPRITES.base, "sprites/base.png");
 loadSprite(SPRITES.path, "sprites/path.png");
 loadSprite(SPRITES.empty, "sprites/empty.png");
 
-// loadSprite(SPRITES.sheep, "sprites/spritesheet-sheep.png", {
-//   sliceX: 3,
-//   sliceY: 2,
-//   anims: {
-//     graze: {
-//       loop: true,
-//       from: 0,
-//       to: 5,
-//     },
-//   },
-// });
-
 loadSpriteAtlas("sprites/spritesheet-sheep.png", {
   [SPRITES.sheep]: {
     x: 0,
@@ -58,18 +46,11 @@ loadSpriteAtlas("sprites/spritesheet-sheep.png", {
       quad(32, 16, 32, 16),
       quad(64, 16, 32, 16),
     ],
-    // x: 0,
-    // y: 0,
-    // width: 96,
-    // height: 64,
-    // sliceX: 3,
-    // sliceY: 2,
     anims: {
       graze: {
         loop: true,
         from: 0,
         to: 5,
-        // to: 5,
       },
     },
   },
@@ -135,16 +116,6 @@ scene(SCENES.mapGeneration, () => {
 });
 
 scene(SCENES.sheepConfig, () => {
-  // temporary: cover the screen with grass
-  add([
-    sprite(SPRITES.grassTile, {
-      width: width(),
-      height: height(),
-      tiled: true,
-    }),
-    pos(0, 0),
-  ]);
-
   // temporary: create a bunch of sheep in random positions
   const segmentWidth = width() / 5;
   const segmentHeight = height() / 5;
