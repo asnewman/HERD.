@@ -57,7 +57,7 @@ function addButton(textValue, options) {
 
   if (options.onClick) {
     buttonComponents.push(area());
-    buttonComponents.push(onClick(tag, options.onClick));
+    onClick(tag, options.onClick);
   }
 
   return add(buttonComponents);
