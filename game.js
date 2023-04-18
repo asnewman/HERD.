@@ -140,38 +140,53 @@ scene(SCENES.sheepConfig, () => {
     }
   }
 
-  const padding = 30;
+  const onSheepTypeClick = (type) => () => {
+    for (const sheepName of gameState.sheepSelected) {
+      const sheep = gameState.sheep[sheepName];
+      const flipXBefore = sheep.flipX;
+      const frameBefore = sheep.frame;
+      if (!sheep) continue;
+      sheep.setType(type);
+      sheep.flipX = flipXBefore;
+      sheep.frame = frameBefore;
+      sheep.play("graze");
+      sheep.toggleSelected();
+      gameState.sheepSelected.delete(sheepName);
+    }
+  };
+
+  const sheepTypeButtonPadding = 30;
 
   addButton("Bomber", {
-    pos: (w) => vec2(width() - w - padding, padding),
+    pos: (w) =>
+      vec2(width() - w - sheepTypeButtonPadding, sheepTypeButtonPadding),
     colorText: BLACK,
     colorBackground: WHITE,
-    onClick: () => {
-      for (const sheepName of gameState.sheepSelected) {
-        const sheep = gameState.sheep[sheepName];
-        const flipXBefore = sheep.flipX;
-        if (!sheep) continue;
-        sheep.setType("bomber");
-        sheep.flipX = flipXBefore;
-      }
-    },
+    onClick: onSheepTypeClick("bomber"),
   });
   addButton("Shielder", {
-    pos: (w, h) => vec2(width() - w - padding, padding + h + padding),
+    pos: (w, h) =>
+      vec2(
+        width() - w - sheepTypeButtonPadding,
+        sheepTypeButtonPadding + h + sheepTypeButtonPadding
+      ),
     colorText: BLACK,
     colorBackground: WHITE,
-    onClick: () => {
-      console.log("Shielder");
-    },
+    onClick: onSheepTypeClick("shielder"),
   });
   addButton("Commando", {
     pos: (w, h) =>
-      vec2(width() - w - padding, padding + h + padding + h + padding),
+      vec2(
+        width() - w - sheepTypeButtonPadding,
+        sheepTypeButtonPadding +
+          h +
+          sheepTypeButtonPadding +
+          h +
+          sheepTypeButtonPadding
+      ),
     colorText: BLACK,
     colorBackground: WHITE,
-    onClick: () => {
-      console.log("Commando");
-    },
+    onClick: onSheepTypeClick("commando"),
   });
 });
 
@@ -222,14 +237,21 @@ function createSheep(options) {
         isSelected = value;
       },
       setType(type) {
-        if (!type) {
-          this.use(sprite(SPRITES.sheep));
-          return;
-        }
         if (type === "bomber") {
           this.use(sprite(SPRITES.sheepBomber));
           return;
         }
+
+        this.use(sprite(SPRITES.sheep));
+      },
+      toggleSelected() {
+        const wasAlreadySelected = gameState.sheepSelected.has(sheep.name);
+
+        wasAlreadySelected
+          ? gameState.sheepSelected.delete(sheep.name)
+          : gameState.sheepSelected.add(sheep.name);
+
+        this.setSelected(!wasAlreadySelected);
       },
     };
   }
