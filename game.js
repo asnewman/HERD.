@@ -50,13 +50,26 @@ loadSpriteAtlas("sprites/spritesheet-sheep.png", {
     y: 0,
     width: 96,
     height: 64,
-    sliceX: 3,
-    sliceY: 2,
+    frames: [
+      quad(0, 15, 32, 17),
+      quad(32, 16, 32, 16),
+      quad(64, 16, 32, 16),
+      quad(0, 16, 32, 16),
+      quad(32, 16, 32, 16),
+      quad(64, 16, 32, 16),
+    ],
+    // x: 0,
+    // y: 0,
+    // width: 96,
+    // height: 64,
+    // sliceX: 3,
+    // sliceY: 2,
     anims: {
       graze: {
         loop: true,
         from: 0,
         to: 5,
+        // to: 5,
       },
     },
   },
@@ -66,9 +79,8 @@ loadSpriteAtlas("sprites/spritesheet-env.png", {
   [SPRITES.grassTile]: {
     x: 16,
     y: 16,
-    width: 64,
+    width: 32,
     height: 32,
-    sliceX: 2,
   },
 });
 
@@ -82,14 +94,14 @@ scene(SCENES.menu, () => {
   add([text("Menu"), pos(0, 0), color(RED)]);
   addButton("Map Generation", {
     pos: vec2(0, 100),
-    colorText: CYAN,
+    colorText: BLACK,
     onClick: () => {
       go(SCENES.mapGeneration);
     },
   });
   addButton("Sheep Configuration", {
     pos: vec2(0, 200),
-    colorText: CYAN,
+    colorText: BLACK,
     onClick: () => {
       go(SCENES.sheepConfig);
     },
@@ -150,19 +162,9 @@ scene(SCENES.sheepConfig, () => {
       });
     }
   }
-
-  // onDraw(() => {
-  //   drawRect({
-  //     width: 120,
-  //     height: 240,
-  //     pos: vec2(20, 20),
-  //     color: YELLOW,
-  //     outline: { color: BLACK, width: 4 },
-  //   });
-  // });
 });
 
-go(SCENES.menu);
+go(SCENES.sheepConfig);
 
 const SHEEP_STATES = {
   grazing: "grazing",
@@ -187,7 +189,6 @@ function createSheep(options) {
     throw new Error("Sheep must have a position");
   }
 
-  // Components are just functions that returns an object that follows a certain format
   function selectable() {
     let isSelected = false;
     return {
@@ -195,10 +196,9 @@ function createSheep(options) {
       require: ["area"],
       draw() {
         if (!isSelected) return;
-        // TODO: need to fix bounding box of the sheep
         drawRect({
           width: 32,
-          height: 32,
+          height: 17,
           pos: vec2(0, 0),
           fill: false,
           outline: { color: RED, width: 1 },
@@ -257,7 +257,7 @@ function createSheep(options) {
       cycleTime: 0,
       cycleTimeLimit: getDirectionTimeLimit(),
     };
-    sheep.flipX(sheepState.grazing.direction === "left");
+    sheep.flipX = sheepState.grazing.direction === "left";
     sheep.play("graze");
   });
 
@@ -300,7 +300,7 @@ function createSheep(options) {
       // track last direction to know what direction to move in next time
       sheepState.grazing.lastDirection = sheepState.grazing.direction;
       // sheep sprite faces right by default - flip it to the left if it's going left
-      sheep.flipX(sheepState.grazing.direction === "left");
+      sheep.flipX = sheepState.grazing.direction === "left";
       // play the grazing animation while moving
       sheep.play("graze");
       return;
@@ -309,6 +309,7 @@ function createSheep(options) {
     // sheep was moving, so now should idle for a cycle
     sheepState.grazing.direction = "idle";
     sheep.stop();
+    sheep.frame = 0;
   });
 
   sheep.enterState(SHEEP_STATES.grazing);
