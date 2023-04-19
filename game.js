@@ -22,7 +22,12 @@ var gameState = {
 const SPRITES = {
   sheep: "sheep",
   sheepBomber: "sheepBomber",
-  base: "base",
+  baseTopRight: "baseTopRight",
+  baseTopLeft: "baseTopLeft",
+  baseBottomRight: "baseBottomRight",
+  baseBottomLeft: "baseBottomLeft",
+  baseVertical: "baseVertical",
+  baseHorizontal: "baseHorizontal",
   path: "path",
   empty: "empty",
   grassTile: "grassTile",
@@ -67,11 +72,41 @@ loadSpriteAtlas("sprites/spritesheet-env.png", {
     width: 32,
     height: 32,
   },
-  [SPRITES.base]: {
+  [SPRITES.baseTopLeft]: {
     x: 96,
     y: 16,
-    width: 48,
-    height: 48
+    width: 16,
+    height: 16
+  },
+  [SPRITES.baseVertical]: {
+    x: 96,
+    y: 32,
+    width: 16,
+    height: 16
+  },
+  [SPRITES.baseBottomLeft]: {
+    x: 96,
+    y: 48,
+    width: 16,
+    height: 16
+  },
+  [SPRITES.baseTopRight]: {
+    x: 128,
+    y: 16,
+    width: 16,
+    height: 16
+  },
+  [SPRITES.baseHorizontal]: {
+    x: 112,
+    y: 16,
+    width: 16,
+    height: 16
+  },
+  [SPRITES.baseBottomRight]: {
+    x: 128,
+    y: 48,
+    width: 16,
+    height: 16
   },
   [SPRITES.path]: {
     x: 144,
@@ -107,16 +142,18 @@ scene(SCENES.menu, () => {
 });
 
 const map = [
-      "x--          ",
-      "  |          ",
-      "  |          ",
-      "  |----      ",
+      "┌─┐          ",
+      "│ │--        ",
+      "└─┘ |        ",
+      "    ---      ",
       "      |      ",
       "      |      ",
       "   ---|      ",
       "   |         ",
       "   |-----    ",
-      "        |---x",
+      "        | ┌─┐",
+      "        |-│ │",
+      "          └─┘",
     ]
 
 scene(SCENES.mapGeneration, () => {
@@ -126,9 +163,14 @@ scene(SCENES.mapGeneration, () => {
       tileWidth: 32,
       tileHeight: 32,
       tiles: {
-        x: () => [sprite(SPRITES.base)],
-        "-": () => [sprite(SPRITES.path)],
-        "|": () => [sprite(SPRITES.path)],
+        "┌": () => [sprite(SPRITES.baseTopLeft), scale(2)],
+        "│": () => [sprite(SPRITES.baseVertical), scale(2)],
+        "└": () => [sprite(SPRITES.baseBottomLeft), scale(2)],
+        "┐": () => [sprite(SPRITES.baseTopRight), scale(2)],
+        "─": () => [sprite(SPRITES.baseHorizontal), scale(2)],
+        "┘": () => [sprite(SPRITES.baseBottomRight), scale(2)],
+        "-": () => [sprite(SPRITES.path), scale(2)],
+        "|": () => [sprite(SPRITES.path), scale(2)],
         // " ": () => [sprite(SPRITES.empty)],
       }
     }
