@@ -32,15 +32,18 @@ export function startGame() {
   const SPRITES = {
     sheep: "sheep",
     sheepBomber: "sheepBomber",
-    base: "base",
+    baseTopRight: "baseTopRight",
+    baseTopLeft: "baseTopLeft",
+    baseBottomRight: "baseBottomRight",
+    baseBottomLeft: "baseBottomLeft",
+    baseVertical: "baseVertical",
+    baseHorizontal: "baseHorizontal",
     path: "path",
     empty: "empty",
     grassTile: "grassTile",
   };
 
   // load sprites
-  k.loadSprite(SPRITES.base, "sprites/base.png");
-  k.loadSprite(SPRITES.path, "sprites/path.png");
   k.loadSprite(SPRITES.empty, "sprites/empty.png");
 
   const sheepAtlasSettings = {
@@ -79,6 +82,48 @@ export function startGame() {
       width: 32,
       height: 32,
     },
+    [SPRITES.baseTopLeft]: {
+      x: 96,
+      y: 16,
+      width: 16,
+      height: 16,
+    },
+    [SPRITES.baseVertical]: {
+      x: 96,
+      y: 32,
+      width: 16,
+      height: 16,
+    },
+    [SPRITES.baseBottomLeft]: {
+      x: 96,
+      y: 48,
+      width: 16,
+      height: 16,
+    },
+    [SPRITES.baseTopRight]: {
+      x: 128,
+      y: 16,
+      width: 16,
+      height: 16,
+    },
+    [SPRITES.baseHorizontal]: {
+      x: 112,
+      y: 16,
+      width: 16,
+      height: 16,
+    },
+    [SPRITES.baseBottomRight]: {
+      x: 128,
+      y: 48,
+      width: 16,
+      height: 16,
+    },
+    [SPRITES.path]: {
+      x: 144,
+      y: 32,
+      height: 16,
+      width: 16,
+    },
   });
 
   const SCENES = {
@@ -105,31 +150,38 @@ export function startGame() {
     });
   });
 
-  // k.scene(SCENES.mapGeneration, () => {
-  //   k.addLevel(
-  //     [
-  //       "x--          ",
-  //       "  |          ",
-  //       "  |          ",
-  //       "  |----      ",
-  //       "      |      ",
-  //       "      |      ",
-  //       "   ---|      ",
-  //       "   |         ",
-  //       "   |-----    ",
-  //       "        |---x",
-  //     ],
-  //     {
-  //       width: 32,
-  //       height: 32,
-  //       x: () => [sprite(SPRITES.base)],
-  //       "-": () => [sprite(SPRITES.path)],
-  //       "|": () => [sprite(SPRITES.path)],
-  //       " ": () => [sprite(SPRITES.empty)],
-  //     }
-  //   );
-  //   setTimeout(() => alert("I'm the map!"));
-  // });
+  const map = [
+    "┌─┐          ",
+    "│ │--        ",
+    "└─┘ |        ",
+    "    ---      ",
+    "      |      ",
+    "      |      ",
+    "   ---|      ",
+    "   |         ",
+    "   |-----    ",
+    "        | ┌─┐",
+    "        |-│ │",
+    "          └─┘",
+  ];
+
+  k.scene(SCENES.mapGeneration, () => {
+    k.addLevel(map, {
+      tileWidth: 32,
+      tileHeight: 32,
+      tiles: {
+        "┌": () => [k.sprite(SPRITES.baseTopLeft), k.scale(2)],
+        "│": () => [k.sprite(SPRITES.baseVertical), k.scale(2)],
+        "└": () => [k.sprite(SPRITES.baseBottomLeft), k.scale(2)],
+        "┐": () => [k.sprite(SPRITES.baseTopRight), k.scale(2)],
+        "─": () => [k.sprite(SPRITES.baseHorizontal), k.scale(2)],
+        "┘": () => [k.sprite(SPRITES.baseBottomRight), k.scale(2)],
+        "-": () => [k.sprite(SPRITES.path), k.scale(2)],
+        "|": () => [k.sprite(SPRITES.path), k.scale(2)],
+        // " ": () => [sprite(SPRITES.empty)],
+      },
+    });
+  });
 
   k.scene(SCENES.sheepConfig, () => {
     // temporary: create a bunch of sheep in random positions
@@ -200,8 +252,6 @@ export function startGame() {
       onClick: onSheepTypeClick("commando"),
     });
   });
-
-  k.go(SCENES.sheepConfig);
 
   enum SheepState {
     grazing = "grazing",
@@ -407,4 +457,6 @@ export function startGame() {
 
     return props;
   }
+
+  k.go(SCENES.menu);
 }
