@@ -1,3 +1,4 @@
+import { Comp, GameObj } from "kaboom";
 import { k } from "./kaboom";
 import { addButton } from "./lib";
 import { createSheep } from "./sheep";
@@ -213,37 +214,70 @@ export function startGame() {
       };
 
     const sheepTypeButtonPadding = 30;
+    const sheepTypeButtonTags = ["sheep-type-button"];
 
-    addButton("Bomber", {
-      pos: (w) =>
-        k.vec2(k.width() - w - sheepTypeButtonPadding, sheepTypeButtonPadding),
+    let buttonsVisible = true;
+
+    let buttons: GameObj<Comp>[] = [];
+    function createButtons() {
+      buttons = [
+        addButton("Bomber", {
+          additionalTags: sheepTypeButtonTags,
+          pos: (w) =>
+            k.vec2(
+              k.width() - w - sheepTypeButtonPadding,
+              sheepTypeButtonPadding
+            ),
+          colorText: k.BLACK,
+          colorBackground: k.WHITE,
+          onClick: onSheepTypeClick("bomber"),
+        }),
+        addButton("Shielder", {
+          additionalTags: sheepTypeButtonTags,
+          pos: (w, h) =>
+            k.vec2(
+              k.width() - w - sheepTypeButtonPadding,
+              sheepTypeButtonPadding + h + sheepTypeButtonPadding
+            ),
+          colorText: k.BLACK,
+          colorBackground: k.WHITE,
+          onClick: onSheepTypeClick("shielder"),
+        }),
+        addButton("Commando", {
+          additionalTags: sheepTypeButtonTags,
+          pos: (w, h) =>
+            k.vec2(
+              k.width() - w - sheepTypeButtonPadding,
+              sheepTypeButtonPadding +
+                h +
+                sheepTypeButtonPadding +
+                h +
+                sheepTypeButtonPadding
+            ),
+          colorText: k.BLACK,
+          colorBackground: k.WHITE,
+          onClick: onSheepTypeClick("commando"),
+        }),
+      ];
+    }
+    createButtons();
+
+    addButton("Toggle Menu", {
+      additionalTags: sheepTypeButtonTags,
+      pos: k.vec2(0, 0),
       colorText: k.BLACK,
       colorBackground: k.WHITE,
-      onClick: onSheepTypeClick("bomber"),
-    });
-    addButton("Shielder", {
-      pos: (w, h) =>
-        k.vec2(
-          k.width() - w - sheepTypeButtonPadding,
-          sheepTypeButtonPadding + h + sheepTypeButtonPadding
-        ),
-      colorText: k.BLACK,
-      colorBackground: k.WHITE,
-      onClick: onSheepTypeClick("shielder"),
-    });
-    addButton("Commando", {
-      pos: (w, h) =>
-        k.vec2(
-          k.width() - w - sheepTypeButtonPadding,
-          sheepTypeButtonPadding +
-            h +
-            sheepTypeButtonPadding +
-            h +
-            sheepTypeButtonPadding
-        ),
-      colorText: k.BLACK,
-      colorBackground: k.WHITE,
-      onClick: onSheepTypeClick("commando"),
+      onClick: () => {
+        if (buttonsVisible) {
+          buttons.forEach((b) => b.destroy());
+          buttonsVisible = false;
+          buttons = [];
+          return;
+        }
+
+        createButtons();
+        buttonsVisible = true;
+      },
     });
   });
 

@@ -31,6 +31,7 @@ function buttonText(opts: IButtonTextOptions): IButtonTextComp {
 }
 
 interface IAddButtonOptions {
+  additionalTags?: string[];
   pos: Vec2 | ((w: number, h: number) => Vec2);
   font?: string;
   textHeight?: number;
@@ -72,6 +73,10 @@ export function addButton(textValue: string, options: IAddButtonOptions) {
       height: formattedText.height,
     }),
   ];
+
+  if (options.additionalTags) {
+    buttonComponents.push(...options.additionalTags);
+  }
 
   if (options.onClick) {
     buttonComponents.push(k.area());
