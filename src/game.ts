@@ -1,6 +1,6 @@
 import { Comp, GameObj } from "kaboom";
 import { k } from "./kaboom";
-import { addButton } from "./lib";
+import { addButton, createMenu } from "./lib";
 import { createSheep } from "./sheep";
 
 export interface IGameState {
@@ -213,73 +213,34 @@ export function startGame() {
         }
       };
 
-    const sheepTypeButtonPadding = 30;
-    const sheepTypeButtonTags = ["sheep-type-button"];
-
-    let buttonsVisible = true;
-
-    let buttons: GameObj<Comp>[] = [];
-    function createButtons() {
-      buttons = [
-        addButton("Bomber", {
-          additionalTags: sheepTypeButtonTags,
-          pos: (w) =>
-            k.vec2(
-              k.width() - w - sheepTypeButtonPadding,
-              sheepTypeButtonPadding
-            ),
-          colorText: k.BLACK,
-          colorBackground: k.WHITE,
-          onClick: onSheepTypeClick("bomber"),
-        }),
-        addButton("Shielder", {
-          additionalTags: sheepTypeButtonTags,
-          pos: (w, h) =>
-            k.vec2(
-              k.width() - w - sheepTypeButtonPadding,
-              sheepTypeButtonPadding + h + sheepTypeButtonPadding
-            ),
-          colorText: k.BLACK,
-          colorBackground: k.WHITE,
-          onClick: onSheepTypeClick("shielder"),
-        }),
-        addButton("Commando", {
-          additionalTags: sheepTypeButtonTags,
-          pos: (w, h) =>
-            k.vec2(
-              k.width() - w - sheepTypeButtonPadding,
-              sheepTypeButtonPadding +
-                h +
-                sheepTypeButtonPadding +
-                h +
-                sheepTypeButtonPadding
-            ),
-          colorText: k.BLACK,
-          colorBackground: k.WHITE,
-          onClick: onSheepTypeClick("commando"),
-        }),
-      ];
-    }
-    createButtons();
-
-    addButton("Toggle Menu", {
-      additionalTags: sheepTypeButtonTags,
-      pos: k.vec2(0, 0),
-      colorText: k.BLACK,
-      colorBackground: k.WHITE,
-      onClick: () => {
-        if (buttonsVisible) {
-          buttons.forEach((b) => b.destroy());
-          buttonsVisible = false;
-          buttons = [];
-          return;
-        }
-
-        createButtons();
-        buttonsVisible = true;
+    const p = 10;
+    const m = createMenu(
+      {
+        pos: [0, 0],
+        padding: [p, p, p, p],
       },
-    });
+      [
+        {
+          text: "Bomber",
+          colorText: k.BLACK,
+          colorBackground: k.WHITE,
+          margin: [0, 0, p, 0],
+          onClick: onSheepTypeClick("bomber"),
+        },
+        {
+          text: "Shielder",
+          margin: [0, 0, p, 0],
+          onClick: onSheepTypeClick("shielder"),
+        },
+        {
+          text: "Commando",
+          onClick: onSheepTypeClick("commando"),
+        },
+      ]
+    );
+
+    m.show();
   });
 
-  k.go(SCENES.menu);
+  k.go(SCENES.sheepConfig);
 }
