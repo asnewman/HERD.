@@ -125,24 +125,45 @@ export function startGame() {
     menu: "menu",
     sheepConfig: "sheep_config",
     mapGeneration: "map_generation",
+    healthCombat: "healthCombat",
   };
 
   k.scene(SCENES.menu, () => {
-    k.add([k.text("Menu"), k.pos(0, 0), k.color(k.RED)]);
-    addButton("Map Generation", {
-      pos: k.vec2(0, 100),
-      colorText: k.BLACK,
-      onClick: () => {
-        k.go(SCENES.mapGeneration);
+    const p = 20;
+
+    k.add([
+      k.text("Menu", {
+        size: 100,
+      }),
+      k.pos(p, p),
+      k.color(k.BLUE),
+    ]);
+
+    const m = createMenu(
+      {
+        pos: [0, 50],
+        padding: [p, p, p, p],
       },
-    });
-    addButton("Sheep Configuration", {
-      pos: k.vec2(0, 200),
-      colorText: k.BLACK,
-      onClick: () => {
-        k.go(SCENES.sheepConfig);
-      },
-    });
+      [
+        {
+          text: "Map Generation",
+          colorText: k.BLACK,
+          colorBackground: k.WHITE,
+          margin: [0, 0, p, 0],
+          onClick: () => k.go(SCENES.mapGeneration),
+        },
+        {
+          text: "Sheep Configuration",
+          margin: [0, 0, p, 0],
+          onClick: () => k.go(SCENES.sheepConfig),
+        },
+        {
+          text: "Health & Combat Testing",
+          onClick: () => k.go(SCENES.healthCombat),
+        },
+      ]
+    );
+    m.show();
   });
 
   const map = [
@@ -242,5 +263,7 @@ export function startGame() {
     m.show();
   });
 
-  k.go(SCENES.sheepConfig);
+  k.scene(SCENES.healthCombat, () => {});
+
+  k.go(SCENES.menu);
 }
