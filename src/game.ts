@@ -1,6 +1,5 @@
-import { Comp, GameObj } from "kaboom";
 import { k } from "./kaboom";
-import { addButton, createMenu } from "./lib";
+import { createMenu } from "./lib";
 import { createSheep } from "./sheep";
 
 export interface IGameState {
@@ -16,6 +15,16 @@ export interface IGameState {
    */
   sheepSelected: Set<string>;
 }
+
+export const SOUNDS = {
+  sheepHurt1: "sheepHurt1",
+  sheepHurt2: "sheepHurt2",
+  sheepHurt3: "sheepHurt3",
+};
+
+k.loadSound(SOUNDS.sheepHurt1, "../sounds/hurt-1.wav");
+k.loadSound(SOUNDS.sheepHurt2, "../sounds/hurt-2.wav");
+k.loadSound(SOUNDS.sheepHurt3, "../sounds/hurt-3.wav");
 
 export const SPRITES = {
   sheep: "sheep",
@@ -263,7 +272,32 @@ export function startGame() {
     m.show();
   });
 
-  k.scene(SCENES.healthCombat, () => {});
+  k.scene(SCENES.healthCombat, () => {
+    const damageSounds = [
+      SOUNDS.sheepHurt1,
+      SOUNDS.sheepHurt2,
+      SOUNDS.sheepHurt3,
+    ];
+
+    const sheep = createSheep(gameState, {
+      name: `sheepish`,
+      pos: [k.width() / 2, k.height() / 2],
+      onDamage: () => {
+        console.log("baaaaaa ouch");
+        const i = Math.round(k.rand(damageSounds.length - 1));
+        const s = damageSounds[i];
+        k.play(s);
+      },
+      onDestroy: () => {
+        console.log("bai");
+        sheep.destroy();
+      },
+    });
+
+    setInterval(() => {
+      sheep.damage(10);
+    }, 1000);
+  });
 
   k.go(SCENES.menu);
 }
