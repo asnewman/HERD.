@@ -3,6 +3,11 @@ import { k } from "../kaboom";
 
 export interface HealthComp extends Comp {
   /**
+   * 
+   * @returns whether or not health remains
+   */
+  isAlive: () => boolean;
+  /**
    * @param damage damage to take
    * @returns remaining health
    */
@@ -115,5 +120,8 @@ export function health(options?: HealthOptions): HealthComp {
     getDamageTime() {
       return damageAnimCurrTime / DAMAGE_ANIM_DURATION_S;
     },
+    isAlive() {
+      return state.current > 0;
+    }
   };
 }

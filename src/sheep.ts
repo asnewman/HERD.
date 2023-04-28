@@ -10,9 +10,9 @@ import { k } from "./kaboom";
 import { IGameState, SHADERS, SPRITES } from "./game";
 import { health } from "./components/health";
 
-enum SheepState {
+export enum SheepState {
   grazing = "grazing",
-  walking = "walking",
+  walking = "walking"
 }
 
 const SHEEP_ANIM_SPEED = 0.6;
@@ -110,6 +110,9 @@ export function createSheep(
          */
         cycleTimeLimit: 0,
       },
+      walking: {
+        direction: "right" as "left" | "right"
+      }
     };
 
     return {
@@ -186,8 +189,25 @@ export function createSheep(
           this.frame = 0;
         });
 
-        // start in the grazing state
-        this.enterState(SheepState.grazing);
+        this.onStateEnter(SheepState.walking, () => {
+          this.play("graze");
+          this.flipX = states.walking.direction === "left";
+        });
+
+        this.onStateUpdate(SheepState.walking, () => {
+          let moveValues: [number, number] = [-1, -1];
+          switch (states.walking.direction) {
+            case "left": {
+              moveValues = [-SHEEP_GRAZE_VELOCITY * k.dt(), 0];
+              break;
+            }
+            case "right": {
+              moveValues = [SHEEP_GRAZE_VELOCITY * k.dt(), 0];
+              break;
+            }
+          }
+          this.move(...moveValues);
+        });
 
         // add the sheep to the game state
         gameState.sheep[options.name] = this;

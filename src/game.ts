@@ -1,7 +1,7 @@
 import { createDog } from "./dog";
 import { k } from "./kaboom";
 import { createMenu } from "./lib";
-import { createSheep } from "./sheep";
+import { SheepState, createSheep } from "./sheep";
 
 export interface IGameState {
   /**
@@ -23,6 +23,7 @@ export interface IGameState {
 
 export const SHADERS = {
   damaged: "damaged",
+  alpha: "alpha"
 };
 
 k.loadShader(
@@ -33,6 +34,18 @@ k.loadShader(
   vec4 frag(vec2 pos, vec2 uv, vec4 color, sampler2D tex) {
       vec4 c = def_frag();
       return mix(c, vec4(vec4(.6, 0, 0, 1).rgb, c.a), u_flash_intensity * .7);
+  }
+`
+);
+
+k.loadShader(
+  SHADERS.alpha,
+  undefined,
+  `
+  uniform float u_alpha;
+  vec4 frag(vec2 pos, vec2 uv, vec4 color, sampler2D tex) {
+      vec4 c = def_frag();
+      return vec4(c.rgb, u_alpha);
   }
 `
 );
@@ -50,7 +63,7 @@ k.loadSound(SOUNDS.sheepHurt3, "../sounds/hurt-3.wav");
 export const SPRITES = {
   sheep: "sheep",
   sheepBomber: "sheepBomber",
-  dogWalk: "dogWalk",
+  dogRun: "dogRun",
   dogIdle: "dogIdle",
   dogAttack: "dogAttack",
   baseTopRight: "baseTopRight",
@@ -64,48 +77,53 @@ export const SPRITES = {
   grassTile: "grassTile",
 };
 
-const f = [
-  k.quad(0, 0, 2, 2),
-  // k.quad(48, 20, 48, 28),
-  // k.quad(96, 20, 48, 28),
-  // k.quad(144, 20, 48, 28),
-  // k.quad(192, 20, 48, 28),
-  // k.quad(240, 20, 48, 28),
-];
-
-k.loadSprite(SPRITES.dogWalk, "sprites/dog/dog-walk.png", {
-  // sliceX: 6,
-  frames: f,
+k.loadSprite(SPRITES.dogRun, "sprites/dog/dog-run.png", {
+  frames: [
+    k.quad(0, (20/48), (48/288), (28/48)),
+    k.quad(((48*1)/288), (20/48), (48/288), (28/48)),
+    k.quad(((48*2)/288), (20/48), (48/288), (28/48)),
+    k.quad(((48*3)/288), (20/48), (48/288), (28/48)),
+    k.quad(((48*4)/288), (20/48), (48/288), (28/48)),
+    k.quad(((48*5)/288), (20/48), (48/288), (28/48)),
+  ],
   anims: {
-    walk: {
+    run: {
       loop: true,
       from: 0,
-      to: 0,
+      to: 5,
     },
   },
 });
-k.loadSprite(SPRITES.dogIdle, "sprites/dog/dog-walk.png", {
-  frames: f,
+k.loadSprite(SPRITES.dogIdle, "sprites/dog/dog-idle.png", {
+  frames: [
+    k.quad(0, (16/48), (48/192), (32/48)),
+    k.quad(((48*1)/192), (16/48), (48/192), (32/48)),
+    k.quad(((48*2)/192), (16/48), (48/192), (32/48)),
+    k.quad(((48*3)/192), (16/48), (48/192), (32/48)),
+  ],
   anims: {
     idle: {
       loop: true,
       from: 0,
-      to: 0,
+      to: 3,
     },
   },
 });
-// k.loadSprite(SPRITES.dogIdle, "sprites/dog/dog-idle.png", {
-//   sliceX: 4,
-//   anims: {
-//     idle: {
-//       loop: true,
-//       from: 0,
-//       to: 3,
-//     },
-//   },
-// });
+
 k.loadSprite(SPRITES.dogAttack, "sprites/dog/dog-attack.png", {
-  sliceX: 4,
+  frames: [
+    k.quad(0, (16/48), (48/192), (32/48)),
+    k.quad(((48*1)/192), (16/48), (48/192), (32/48)),
+    k.quad(((48*2)/192), (16/48), (48/192), (32/48)),
+    k.quad(((48*3)/192), (16/48), (48/192), (32/48)),
+  ],
+  anims: {
+    attack: {
+      loop: false,
+      from: 0,
+      to: 3,
+    },
+  },
 });
 
 export function startGame() {
@@ -401,22 +419,28 @@ export function startGame() {
 
     const sheep = createSheep(gameState, {
       name: `sheepish`,
-      pos: [k.width() / 2, k.height() / 2 - 100],
+      pos: [0, k.height() / 2 - 100],
+      initialState: SheepState.walking,
       onDamage: () => {
-        console.log("baaaaaa ouch");
         const i = Math.round(k.rand(damageSounds.length - 1));
         const s = damageSounds[i];
         k.play(s);
       },
       onDestroy: () => {
-        console.log("bai");
         sheep.destroy();
       },
     });
 
-    const dog = createDog(gameState, {
-      name: "doggo",
-      pos: [k.width() / 2, k.height() / 2 + 100],
+    const dog1 = createDog(gameState, {
+      name: "doggo1",
+      pos: [k.width() / 2 + 200, k.height() / 2 + 200],
+      health: false
+    });
+
+    const dog2 = createDog(gameState, {
+      name: "doggo2",
+      pos: [k.width() / 2 - 100, k.height() / 2 - 400],
+      health: false
     });
 
     setInterval(() => {
