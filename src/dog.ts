@@ -17,7 +17,7 @@ import { alphaChannel } from "./components/alphaChannel";
 enum DogState {
   patrolling = "patrolling",
   running = "running",
-  attacking = "attacking"
+  attacking = "attacking",
 }
 
 const DOG_ANIM_IDLE_SPEED = 0.6;
@@ -76,31 +76,36 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
       },
       attacking: {
         target: null as GameObj<HealthComp | PosComp> | null,
-        isWaitingToAttack: false
-      }
+        isWaitingToAttack: false,
+      },
     };
 
-    let setAnimation = function(this: DogObj, name: "run" | "idle" | 'attack') {
+    let setAnimation = function (
+      this: DogObj,
+      name: "run" | "idle" | "attack"
+    ) {
       if (this.curAnim() === name) return;
 
       this.unuse("sprite");
 
-      if (name === 'run') {
+      if (name === "run") {
         this.use(k.sprite(SPRITES.dogRun, { animSpeed: DOG_ANIM_RUN_SPEED }));
         this.play("run");
         this.flipX = states.patrolling.direction === "left";
         return;
       }
 
-      if (name === 'idle') {
+      if (name === "idle") {
         this.use(k.sprite(SPRITES.dogIdle, { animSpeed: DOG_ANIM_IDLE_SPEED }));
         this.play("idle");
-        this.flipX = states.patrolling.lastDirection === 'left';
+        this.flipX = states.patrolling.lastDirection === "left";
         return;
       }
 
-      if (name === 'attack') {
-        this.use(k.sprite(SPRITES.dogAttack, { animSpeed: DOG_ANIM_ATTACK_SPEED }));
+      if (name === "attack") {
+        this.use(
+          k.sprite(SPRITES.dogAttack, { animSpeed: DOG_ANIM_ATTACK_SPEED })
+        );
         this.play("attack");
         return;
       }
@@ -108,9 +113,7 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
 
     return {
       id: "dogState",
-      add: function (
-        this: DogObj
-      ) {
+      add: function (this: DogObj) {
         setAnimation = setAnimation.bind(this);
         this.onStateEnter(DogState.patrolling, async () => {
           states.patrolling = {
@@ -169,19 +172,29 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
           setAnimation.call(this, "idle");
         });
 
-        this.onStateEnter(DogState.attacking, async (sheep: GameObj<HealthComp | PosComp & { name: string }>) => {
-          console.log('woof! time to attack ' + sheep.name);
-          states.attacking.target = sheep;
-        });
+        this.onStateEnter(
+          DogState.attacking,
+          async (sheep: GameObj<HealthComp | (PosComp & { name: string })>) => {
+            console.log("woof! time to attack " + sheep.name);
+            states.attacking.target = sheep;
+          }
+        );
 
         const ATTACK_RANGE = 62;
         const ATTACK_FREQUENCY = 1;
         const ATTACK_DAMAGE = 10;
 
         this.onStateUpdate(DogState.attacking, async () => {
-          if (!states.attacking.target || states.attacking.target.isAlive() === false) {
+          if (
+            !states.attacking.target ||
+            states.attacking.target.isAlive() === false
+          ) {
             // give the attack animation time to finish playing before going back to patrolling
-            if (this.curAnim() === 'attack' && this.frame !== this.numFrames()-1) return;
+            if (
+              this.curAnim() === "attack" &&
+              this.frame !== this.numFrames() - 1
+            )
+              return;
 
             states.attacking.target = null;
             this.enterState(DogState.patrolling);
@@ -198,9 +211,13 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
           if (distance <= ATTACK_RANGE || states.attacking.isWaitingToAttack) {
             // currently waiting to attack, so check to see if we should idle, and early return
             // to avoid queuing up another one
-            if (states.attacking.isWaitingToAttack) { 
+            if (states.attacking.isWaitingToAttack) {
               // give the attack animation time to finish playing before going back to patrolling
-              if (this.curAnim() !== 'attack' || (this.curAnim() === 'attack' && this.frame === this.numFrames()-1)) 
+              if (
+                this.curAnim() !== "attack" ||
+                (this.curAnim() === "attack" &&
+                  this.frame === this.numFrames() - 1)
+              )
                 setAnimation.call(this, "idle");
 
               return;
@@ -209,7 +226,10 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
             states.attacking.isWaitingToAttack = true;
             k.wait(ATTACK_FREQUENCY, () => {
               // have to check if the sheep moved since the last time we set a timer to wait to attack
-              if (distance > ATTACK_RANGE || states.attacking.isWaitingToAttack === false) {
+              if (
+                distance > ATTACK_RANGE ||
+                states.attacking.isWaitingToAttack === false
+              ) {
                 return;
               }
               setAnimation.call(this, "attack");
@@ -219,11 +239,14 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
           }
           // if not in attack range, move towards the sheep and return
           else if (
-            this.curAnim() !== 'attack' ||
-            this.frame === this.numFrames()-1
-          ){
+            this.curAnim() !== "attack" ||
+            this.frame === this.numFrames() - 1
+          ) {
             setAnimation.call(this, "run");
-            this.move(unitVector.x * DOG_MOVE_VELOCITY * k.dt(), unitVector.y * DOG_MOVE_VELOCITY * k.dt());
+            this.move(
+              unitVector.x * DOG_MOVE_VELOCITY * k.dt(),
+              unitVector.y * DOG_MOVE_VELOCITY * k.dt()
+            );
           }
         });
 
@@ -243,15 +266,22 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
   const dog = k.add([
     "dog",
     { name: options.name },
-    ...(options.health === false ? [] : [health({
-      onDamage: options?.onDamage,
-      onDeath: options?.onDestroy,
-    })]),
+    ...(options.health === false
+      ? []
+      : [
+          health({
+            onDamage: options?.onDamage,
+            onDeath: options?.onDestroy,
+          }),
+        ]),
     dogTag,
     k.pos(...options.pos),
     k.sprite(SPRITES.dogIdle, { animSpeed: DOG_ANIM_IDLE_SPEED }),
     k.scale(3, 3),
-    k.state(options.initialState || DogState.patrolling, Object.values(DogState)),
+    k.state(
+      options.initialState || DogState.patrolling,
+      Object.values(DogState)
+    ),
     k.area(),
     // k.body(),
     dogState(),
@@ -274,8 +304,8 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
     k.circle(PATROL_RADIUS),
     k.area(),
     k.color(0, 0, 0),
-    
-    alphaChannel(0) // set to something between .1 and .9 for debugging
+
+    alphaChannel(0), // set to something between .1 and .9 for debugging
   ]) as GameObj<Comp | AreaComp | PosComp | CircleComp>;
 
   patrolCollider.onCollide("sheep", (sheep) => {
@@ -285,17 +315,18 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
   return dog;
 }
 
-
 function getVectorInfo(obj1: Vec2, obj2: Vec2): readonly [number, Vec2] {
-    // Calculate the direction vector
-    const xDifference = obj2.x - obj1.x;
-    const yDifference = obj2.y - obj1.y;
+  // Calculate the direction vector
+  const xDifference = obj2.x - obj1.x;
+  const yDifference = obj2.y - obj1.y;
 
-    // Normalize the direction vector
-    const distance = Math.sqrt(xDifference * xDifference + yDifference * yDifference);
-    const normalizedX = xDifference / distance;
-    const normalizedY = yDifference / distance;
+  // Normalize the direction vector
+  const distance = Math.sqrt(
+    xDifference * xDifference + yDifference * yDifference
+  );
+  const normalizedX = xDifference / distance;
+  const normalizedY = yDifference / distance;
 
-    // Return the normalized direction vector components
-    return [distance, k.vec2(normalizedX, normalizedY)] as const;
+  // Return the normalized direction vector components
+  return [distance, k.vec2(normalizedX, normalizedY)] as const;
 }

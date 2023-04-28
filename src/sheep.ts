@@ -12,7 +12,7 @@ import { health } from "./components/health";
 
 export enum SheepState {
   grazing = "grazing",
-  walking = "walking"
+  walking = "walking",
 }
 
 const SHEEP_ANIM_SPEED = 0.6;
@@ -111,8 +111,8 @@ export function createSheep(
         cycleTimeLimit: 0,
       },
       walking: {
-        direction: "right" as "left" | "right"
-      }
+        direction: "right" as "left" | "right",
+      },
     };
 
     return {
