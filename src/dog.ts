@@ -18,15 +18,16 @@ enum DogState {
   patrolling = "patrolling",
   running = "running",
   hunting = "hunting",
+  attacking = "attacking",
 }
 
 const DOG_ANIM_IDLE_SPEED = 0.6;
 const DOG_ANIM_ATTACK_SPEED = 1.5;
 const DOG_ANIM_RUN_SPEED = 1.5;
-const DOG_MOVE_VELOCITY = 8000;
+const DOG_HUNT_VELOCITY = 8000;
+const DOG_PATROL_VELOCITY = 4000;
 
 const DOG_ATTACK_RANGE = 60;
-const DOG_ATTACK_FREQUENCY = 1;
 const DOG_ATTACK_DAMAGE = 10;
 
 interface ICreateDogOptions {
@@ -52,6 +53,7 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
   }
 
   type DogObj = GameObj<StateComp | SpriteComp | AreaComp | BodyComp | PosComp>;
+  type Target = GameObj<HealthComp | (PosComp & { name: string })>;
 
   function dogState() {
     const states = {
@@ -79,7 +81,7 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
         cycleTimeLimit: 0,
       },
       hunting: {
-        target: null as GameObj<HealthComp | PosComp> | null,
+        target: null as Target | null,
         isWaitingToAttack: false,
       },
       // super simple state:
@@ -87,13 +89,13 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
       // - if so, bite the target
       // - if not, go back to hunting
       attacking: {
-        target: null as GameObj<HealthComp | PosComp> | null,
-        isWaitingToAttack: false,
+        target: null as Target | null,
+        hasAppliedDamage: false,
       },
     };
 
     type Anim = "run" | "idle" | "attack";
-    let setAnimation = function (this: DogObj, name: Anim) {
+    const setAnimation = function (this: DogObj, name: Anim) {
       const currentAnim = this.curAnim();
       if (currentAnim === name) return;
 
@@ -126,7 +128,7 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
             : states.direction === "left";
       },
       add: function (this: DogObj) {
-        setAnimation = setAnimation.bind(this);
+        // patrolling
         this.onStateEnter(DogState.patrolling, async () => {
           states.lastDirection = "right";
           states.direction = ["left", "right", "idle"][k.rand(2)];
@@ -136,7 +138,6 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
           };
           setAnimation.call(this, "idle");
         });
-
         this.onStateUpdate(DogState.patrolling, () => {
           const delta = k.dt();
 
@@ -147,11 +148,11 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
               break;
             }
             case "left": {
-              moveValues = [-DOG_MOVE_VELOCITY * delta, 0];
+              moveValues = [-DOG_PATROL_VELOCITY * delta, 0];
               break;
             }
             case "right": {
-              moveValues = [DOG_MOVE_VELOCITY * delta, 0];
+              moveValues = [DOG_PATROL_VELOCITY * delta, 0];
               break;
             }
           }
@@ -184,26 +185,12 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
           setAnimation.call(this, "idle");
         });
 
-        this.onStateEnter(
-          DogState.hunting,
-          async (sheep: GameObj<HealthComp | (PosComp & { name: string })>) => {
-            console.log("woof! time to attack " + sheep.name);
-            states.hunting.target = sheep;
-          }
-        );
-
+        // hunting
+        this.onStateEnter(DogState.hunting, async (target: Target) => {
+          states.hunting.target = target;
+        });
         this.onStateUpdate(DogState.hunting, async () => {
-          if (
-            !states.hunting.target ||
-            states.hunting.target.isAlive() === false
-          ) {
-            // give the attack animation time to finish playing before going back to patrolling
-            if (
-              this.curAnim() === "attack" &&
-              this.frame !== this.numFrames() - 1
-            )
-              return;
-
+          if (!states.hunting.target?.isAlive()) {
             states.hunting.target = null;
             this.enterState(DogState.patrolling);
             return;
@@ -215,52 +202,60 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
           states.direction = target.pos.x < this.pos.x ? "left" : "right";
           states.lastDirection = states.direction;
 
-          const [distance, unitVector] = getVectorInfo(this.pos, target.pos);
+          const [distanceToTarget, unitVector] = getVectorInfo(
+            this.pos,
+            target.pos
+          );
 
-          // if within attack range, bite the sheep
-          if (
-            distance <= DOG_ATTACK_RANGE ||
-            states.hunting.isWaitingToAttack
-          ) {
-            // currently waiting to attack, so check to see if we should idle, and early return
-            // to avoid queuing up another one
-            if (states.hunting.isWaitingToAttack) {
-              // give the attack animation time to finish playing before going back to patrolling
-              if (
-                this.curAnim() !== "attack" ||
-                (this.curAnim() === "attack" &&
-                  this.frame === this.numFrames() - 1)
-              )
-                setAnimation.call(this, "idle");
-
-              return;
-            }
-
-            states.hunting.isWaitingToAttack = true;
-            k.wait(DOG_ATTACK_FREQUENCY, () => {
-              // have to check if the sheep moved since the last time we set a timer to wait to attack
-              if (
-                distance > DOG_ATTACK_RANGE ||
-                states.hunting.isWaitingToAttack === false
-              ) {
-                return;
-              }
-              setAnimation.call(this, "attack");
-              target.damage(DOG_ATTACK_DAMAGE);
-              states.hunting.isWaitingToAttack = false;
-            });
+          // if the dog is within attack range, attack the target
+          if (distanceToTarget <= DOG_ATTACK_RANGE) {
+            this.enterState(DogState.attacking, states.hunting.target);
+            return;
           }
-          // if not in attack range, move towards the sheep and return
-          else if (
-            this.curAnim() !== "attack" ||
-            this.frame === this.numFrames() - 1
-          ) {
-            setAnimation.call(this, "run");
-            this.move(
-              unitVector.x * DOG_MOVE_VELOCITY * k.dt(),
-              unitVector.y * DOG_MOVE_VELOCITY * k.dt()
-            );
+
+          // if the dog is not within attack range, run towards the target
+          setAnimation.call(this, "run");
+          this.move(
+            unitVector.x * DOG_HUNT_VELOCITY * k.dt(),
+            unitVector.y * DOG_HUNT_VELOCITY * k.dt()
+          );
+        });
+
+        // attacking
+        this.onStateEnter(DogState.attacking, async (target: Target) => {
+          states.attacking.target = target;
+          states.attacking.hasAppliedDamage = false;
+          setAnimation.call(this, "attack");
+        });
+        this.onStateUpdate(DogState.attacking, async () => {
+          // if target is non-existent or dead, go back to patrolling
+          if (!states.attacking.target?.isAlive()) {
+            this.enterState(DogState.patrolling);
+            return;
           }
+
+          // actually apply damage midway through the attack animation
+          if (this.frame === 3 && !states.attacking.hasAppliedDamage) {
+            states.attacking.target!.damage(DOG_ATTACK_DAMAGE);
+            states.attacking.hasAppliedDamage = true;
+          }
+
+          // wait until the animation has fully played to process what to do next
+          if (this.frame !== this.numFrames() - 1) {
+            return;
+          }
+
+          const { target } = states.attacking;
+          const [distanceToTarget] = getVectorInfo(this.pos, target.pos);
+
+          // if target is too far to attack again, go back to hunting it
+          if (distanceToTarget > DOG_ATTACK_RANGE) {
+            this.enterState(DogState.hunting, states.attacking.target);
+            return;
+          }
+
+          // if target still within attack range, restart attack state
+          this.enterState(DogState.attacking, states.attacking.target);
         });
 
         // add the dog to the game state

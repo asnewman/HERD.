@@ -116,12 +116,15 @@ k.loadSprite(SPRITES.dogAttack, "sprites/dog/dog-attack.png", {
     k.quad((48 * 1) / 192, 16 / 48, 48 / 192, 32 / 48),
     k.quad((48 * 2) / 192, 16 / 48, 48 / 192, 32 / 48),
     k.quad((48 * 3) / 192, 16 / 48, 48 / 192, 32 / 48),
+    // trailing frames - can add more of these to make the attack animation longer
+    k.quad(0, 16 / 48, 48 / 192, 32 / 48),
+    k.quad(0, 16 / 48, 48 / 192, 32 / 48),
   ],
   anims: {
     attack: {
       loop: false,
       from: 0,
-      to: 3,
+      to: 5,
     },
   },
 });
@@ -419,8 +422,8 @@ export function startGame() {
 
     const sheep = createSheep(gameState, {
       name: `sheepish`,
-      pos: [k.width() / 2, k.height() / 2],
-      initialState: SheepState.grazing,
+      pos: [0, k.height() / 2],
+      initialState: SheepState.walking,
       onDamage: () => {
         // const i = Math.round(k.rand(damageSounds.length - 1));
         // const s = damageSounds[i];
@@ -433,7 +436,7 @@ export function startGame() {
 
     const dog1 = createDog(gameState, {
       name: "doggo1",
-      pos: [k.width() / 2, k.height() / 2],
+      pos: [k.width() / 2 + 100, k.height() / 2 + 100],
       health: false,
     });
   });
