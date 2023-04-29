@@ -17,13 +17,17 @@ import { alphaChannel } from "./components/alphaChannel";
 enum DogState {
   patrolling = "patrolling",
   running = "running",
-  attacking = "attacking",
+  hunting = "hunting",
 }
 
 const DOG_ANIM_IDLE_SPEED = 0.6;
 const DOG_ANIM_ATTACK_SPEED = 1.5;
 const DOG_ANIM_RUN_SPEED = 1.5;
 const DOG_MOVE_VELOCITY = 8000;
+
+const DOG_ATTACK_RANGE = 60;
+const DOG_ATTACK_FREQUENCY = 1;
+const DOG_ATTACK_DAMAGE = 10;
 
 interface ICreateDogOptions {
   name: string;
@@ -52,17 +56,17 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
   function dogState() {
     const states = {
       isSelected: false,
+      /**
+       * The last direction the sheep was moving in.
+       * Used to determine what the next direction should be.
+       */
+      lastDirection: "",
+      /**
+       * The current direction the sheep is moving in.
+       * Can be "left", "right", or "idle".
+       */
+      direction: "right",
       patrolling: {
-        /**
-         * The last direction the sheep was moving in.
-         * Used to determine what the next direction should be.
-         */
-        lastDirection: "",
-        /**
-         * The current direction the sheep is moving in.
-         * Can be "left", "right", or "idle".
-         */
-        direction: "right",
         /**
          * The amount of time for which the sheep has been moving in the
          * current direction.
@@ -74,32 +78,35 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
          */
         cycleTimeLimit: 0,
       },
+      hunting: {
+        target: null as GameObj<HealthComp | PosComp> | null,
+        isWaitingToAttack: false,
+      },
+      // super simple state:
+      // - check if target is in range
+      // - if so, bite the target
+      // - if not, go back to hunting
       attacking: {
         target: null as GameObj<HealthComp | PosComp> | null,
         isWaitingToAttack: false,
       },
     };
 
-    let setAnimation = function (
-      this: DogObj,
-      name: "run" | "idle" | "attack"
-    ) {
-      if (this.curAnim() === name) return;
+    type Anim = "run" | "idle" | "attack";
+    let setAnimation = function (this: DogObj, name: Anim) {
+      const currentAnim = this.curAnim();
+      if (currentAnim === name) return;
 
       this.unuse("sprite");
 
       if (name === "run") {
         this.use(k.sprite(SPRITES.dogRun, { animSpeed: DOG_ANIM_RUN_SPEED }));
         this.play("run");
-        this.flipX = states.patrolling.direction === "left";
-        return;
       }
 
       if (name === "idle") {
         this.use(k.sprite(SPRITES.dogIdle, { animSpeed: DOG_ANIM_IDLE_SPEED }));
         this.play("idle");
-        this.flipX = states.patrolling.lastDirection === "left";
-        return;
       }
 
       if (name === "attack") {
@@ -107,18 +114,23 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
           k.sprite(SPRITES.dogAttack, { animSpeed: DOG_ANIM_ATTACK_SPEED })
         );
         this.play("attack");
-        return;
       }
     };
 
     return {
       id: "dogState",
+      update(this: GameObj<SpriteComp | StateComp>) {
+        this.flipX =
+          this.curAnim() === "idle"
+            ? states.lastDirection === "left"
+            : states.direction === "left";
+      },
       add: function (this: DogObj) {
         setAnimation = setAnimation.bind(this);
         this.onStateEnter(DogState.patrolling, async () => {
+          states.lastDirection = "right";
+          states.direction = ["left", "right", "idle"][k.rand(2)];
           states.patrolling = {
-            lastDirection: "right",
-            direction: ["left", "right", "idle"][k.rand(2)],
             cycleTime: 0,
             cycleTimeLimit: getDirectionTimeLimit(),
           };
@@ -129,7 +141,7 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
           const delta = k.dt();
 
           let moveValues: [number, number] = [-1, -1];
-          switch (states.patrolling.direction) {
+          switch (states.direction) {
             case "idle": {
               moveValues = [0, 0];
               break;
@@ -157,37 +169,33 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
           states.patrolling.cycleTimeLimit = getDirectionTimeLimit();
 
           // if currently idle, start moving in a direction
-          if (states.patrolling.direction === "idle") {
+          if (states.direction === "idle") {
             // if the dog was last going left, go right now
-            states.patrolling.direction =
-              states.patrolling.lastDirection === "right" ? "left" : "right";
+            states.direction =
+              states.lastDirection === "right" ? "left" : "right";
             // track last direction to know what direction to move in next time
-            states.patrolling.lastDirection = states.patrolling.direction;
+            states.lastDirection = states.direction;
             setAnimation.call(this, "run");
             return;
           }
 
           // dog was moving, so now should idle for a cycle
-          states.patrolling.direction = "idle";
+          states.direction = "idle";
           setAnimation.call(this, "idle");
         });
 
         this.onStateEnter(
-          DogState.attacking,
+          DogState.hunting,
           async (sheep: GameObj<HealthComp | (PosComp & { name: string })>) => {
             console.log("woof! time to attack " + sheep.name);
-            states.attacking.target = sheep;
+            states.hunting.target = sheep;
           }
         );
 
-        const ATTACK_RANGE = 62;
-        const ATTACK_FREQUENCY = 1;
-        const ATTACK_DAMAGE = 10;
-
-        this.onStateUpdate(DogState.attacking, async () => {
+        this.onStateUpdate(DogState.hunting, async () => {
           if (
-            !states.attacking.target ||
-            states.attacking.target.isAlive() === false
+            !states.hunting.target ||
+            states.hunting.target.isAlive() === false
           ) {
             // give the attack animation time to finish playing before going back to patrolling
             if (
@@ -196,22 +204,27 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
             )
               return;
 
-            states.attacking.target = null;
+            states.hunting.target = null;
             this.enterState(DogState.patrolling);
             return;
           }
 
-          const { target } = states.attacking;
+          const { target } = states.hunting;
+
           // if the target is to the left of the dog, flip the image
-          this.flipX = target.pos.x < this.pos.x;
+          states.direction = target.pos.x < this.pos.x ? "left" : "right";
+          states.lastDirection = states.direction;
 
           const [distance, unitVector] = getVectorInfo(this.pos, target.pos);
 
           // if within attack range, bite the sheep
-          if (distance <= ATTACK_RANGE || states.attacking.isWaitingToAttack) {
+          if (
+            distance <= DOG_ATTACK_RANGE ||
+            states.hunting.isWaitingToAttack
+          ) {
             // currently waiting to attack, so check to see if we should idle, and early return
             // to avoid queuing up another one
-            if (states.attacking.isWaitingToAttack) {
+            if (states.hunting.isWaitingToAttack) {
               // give the attack animation time to finish playing before going back to patrolling
               if (
                 this.curAnim() !== "attack" ||
@@ -223,18 +236,18 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
               return;
             }
 
-            states.attacking.isWaitingToAttack = true;
-            k.wait(ATTACK_FREQUENCY, () => {
+            states.hunting.isWaitingToAttack = true;
+            k.wait(DOG_ATTACK_FREQUENCY, () => {
               // have to check if the sheep moved since the last time we set a timer to wait to attack
               if (
-                distance > ATTACK_RANGE ||
-                states.attacking.isWaitingToAttack === false
+                distance > DOG_ATTACK_RANGE ||
+                states.hunting.isWaitingToAttack === false
               ) {
                 return;
               }
               setAnimation.call(this, "attack");
-              target.damage(ATTACK_DAMAGE);
-              states.attacking.isWaitingToAttack = false;
+              target.damage(DOG_ATTACK_DAMAGE);
+              states.hunting.isWaitingToAttack = false;
             });
           }
           // if not in attack range, move towards the sheep and return
@@ -249,9 +262,6 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
             );
           }
         });
-
-        // start in the patrolling state
-        this.enterState(DogState.patrolling);
 
         // add the dog to the game state
         gameState.enemies[options.name] = this;
@@ -309,7 +319,7 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
   ]) as GameObj<Comp | AreaComp | PosComp | CircleComp>;
 
   patrolCollider.onCollide("sheep", (sheep) => {
-    dog.enterState(DogState.attacking, sheep);
+    dog.enterState(DogState.hunting, sheep);
   });
 
   return dog;
