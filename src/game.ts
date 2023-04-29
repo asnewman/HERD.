@@ -420,6 +420,27 @@ export function startGame() {
       SOUNDS.sheepHurt3,
     ];
 
+    // temporary: create a bunch of sheep in random positions
+    const segmentWidth = k.width() / 5;
+    const segmentHeight = k.height() / 5;
+    const getOffset = () => k.rand(-50, 50);
+    for (let x = 0; x < 5; x++) {
+      for (let y = 0; y < 5; y++) {
+        const xStart = x * segmentWidth;
+        const yStart = y * segmentHeight;
+        const s = createSheep(gameState, {
+          name: `sheep${x}${y}`,
+          pos: [
+            xStart + segmentWidth / 2 + getOffset(),
+            yStart + segmentHeight / 2 + getOffset(),
+          ],
+          onDestroy() {
+            s.destroy();
+          },
+        });
+      }
+    }
+
     const sheep = createSheep(gameState, {
       name: `sheepish`,
       pos: [0, k.height() / 2],

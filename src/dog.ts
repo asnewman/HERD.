@@ -21,6 +21,8 @@ enum DogState {
   attacking = "attacking",
 }
 
+const DOG_PATROL_RADIUS = 150;
+
 const DOG_ANIM_IDLE_SPEED = 0.6;
 const DOG_ANIM_ATTACK_SPEED = 1.5;
 const DOG_ANIM_RUN_SPEED = 1.5;
@@ -34,7 +36,6 @@ interface ICreateDogOptions {
   name: string;
   pos: [number, number];
   initialState?: DogState;
-  health?: boolean;
   onDamage?: () => void;
   onDestroy?: () => void;
 }
@@ -57,25 +58,27 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
 
   function dogState() {
     const states = {
-      isSelected: false,
       /**
-       * The last direction the sheep was moving in.
+       * The last direction the dog was moving in.
        * Used to determine what the next direction should be.
        */
       lastDirection: "",
       /**
-       * The current direction the sheep is moving in.
+       * The current direction the dog is moving in.
        * Can be "left", "right", or "idle".
        */
       direction: "right",
       patrolling: {
+        collider: null as GameObj<
+          Comp | AreaComp | PosComp | CircleComp
+        > | null,
         /**
-         * The amount of time for which the sheep has been moving in the
+         * The amount of time for which the dog has been moving in the
          * current direction.
          */
         cycleTime: 0,
         /**
-         * The amount of time for which the sheep should move in the current
+         * The amount of time for which the dog should move in the current
          * direction before changing it.
          */
         cycleTimeLimit: 0,
@@ -133,10 +136,36 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
           states.lastDirection = "right";
           states.direction = ["left", "right", "idle"][k.rand(2)];
           states.patrolling = {
+            collider: dog.add([
+              // arbitrary magic numbers to put the dog at the center of the circle - not sure why it doesn't have width/height lol
+              k.pos(18, 12),
+              k.circle(DOG_PATROL_RADIUS),
+              k.area(),
+              k.color(0, 0, 0),
+              alphaChannel(0), // set to something between .1 and .9 for debugging
+            ]) as GameObj<Comp | AreaComp | PosComp | CircleComp>,
             cycleTime: 0,
             cycleTimeLimit: getDirectionTimeLimit(),
           };
+
           setAnimation.call(this, "idle");
+
+          // TODO: debounce this like 10ms, track targets ordered by how close they are,
+          // and once function actually executes, to enter the hunting state, choose the
+          // closest one
+          states.patrolling.collider!.onCollide("sheep", (sheep) => {
+            // if the dog is already hunting or attacking,
+            // don't change its target
+            if (dog.state === "hunting" || dog.state === "attacking") {
+              return;
+            }
+
+            dog.enterState(DogState.hunting, sheep);
+          });
+        });
+        this.onStateEnd(DogState.patrolling, () => {
+          states.patrolling.collider!.destroy();
+          states.patrolling.collider = null;
         });
         this.onStateUpdate(DogState.patrolling, () => {
           const delta = k.dt();
@@ -271,14 +300,10 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
   const dog = k.add([
     "dog",
     { name: options.name },
-    ...(options.health === false
-      ? []
-      : [
-          health({
-            onDamage: options?.onDamage,
-            onDeath: options?.onDestroy,
-          }),
-        ]),
+    health({
+      onDamage: options?.onDamage,
+      onDeath: options?.onDestroy,
+    }),
     dogTag,
     k.pos(...options.pos),
     k.sprite(SPRITES.dogIdle, { animSpeed: DOG_ANIM_IDLE_SPEED }),
@@ -295,26 +320,8 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
     }),
   ]);
 
-  if (options.health) {
-    dog.onUpdate(() => {
-      dog.uniform["u_flash_intensity"] = dog.getDamageTime();
-    });
-  }
-
-  const PATROL_RADIUS = 150;
-
-  const patrolCollider = dog.add([
-    // arbitrary magic numbers to put the dog at the center of the circle - not sure why it doesn't have width/height lol
-    k.pos(18, 12),
-    k.circle(PATROL_RADIUS),
-    k.area(),
-    k.color(0, 0, 0),
-
-    alphaChannel(0), // set to something between .1 and .9 for debugging
-  ]) as GameObj<Comp | AreaComp | PosComp | CircleComp>;
-
-  patrolCollider.onCollide("sheep", (sheep) => {
-    dog.enterState(DogState.hunting, sheep);
+  dog.onUpdate(() => {
+    dog.uniform["u_flash_intensity"] = dog.getDamageTime();
   });
 
   return dog;
