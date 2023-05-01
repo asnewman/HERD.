@@ -458,7 +458,6 @@ export function startGame() {
     const dog1 = createDog(gameState, {
       name: "doggo1",
       pos: [k.width() / 2 + 100, k.height() / 2 + 100],
-      health: false,
     });
   });
 
