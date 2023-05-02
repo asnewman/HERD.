@@ -20,6 +20,10 @@ export interface IGameState {
    * A set of the enemies that are currently part of the game.
    */
   enemies: Record<string, any>;
+  /**
+   * String representation of the map
+   */
+  map: string[];
 }
 
 export const SHADERS = {
@@ -135,6 +139,7 @@ export function startGame() {
     sheep: {},
     sheepSelected: new Set(),
     enemies: {},
+    map: [],
   };
 
   // load sprites
@@ -317,10 +322,10 @@ export function startGame() {
     m.show();
   });
 
-  let map = fillMap();
-
   k.scene(SCENES.mapGeneration, () => {
-    k.addLevel(map, {
+    gameState.map = fillMap();
+
+    k.addLevel(gameState.map, {
       tileWidth: 32,
       tileHeight: 32,
       tiles: {
@@ -334,6 +339,16 @@ export function startGame() {
         "┘": () => [k.sprite(SPRITES.baseBottomRight), k.scale(2)],
         p: () => [k.sprite(SPRITES.path), k.scale(2)],
         // " ": () => [sprite(SPRITES.empty)],
+      },
+    });
+
+    const sheep = createSheep(gameState, {
+      name: `sheepish`,
+      pos: [0, k.height() / 2],
+      initialState: SheepState.walking,
+      onDamage: () => {},
+      onDestroy: () => {
+        sheep.destroy();
       },
     });
   });
@@ -451,5 +466,5 @@ export function startGame() {
     });
   });
 
-  k.go(SCENES.healthCombat);
+  k.go(SCENES.mapGeneration);
 }
