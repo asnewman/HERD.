@@ -39,6 +39,7 @@ interface IAddButtonOptions {
   colorOutline?: [number, Color];
   colorText?: Color;
   onClick?: (a: GameObj) => void;
+  parent?: GameObj;
 }
 
 export function addButton(textValue: string, options: IAddButtonOptions) {
@@ -83,5 +84,121 @@ export function addButton(textValue: string, options: IAddButtonOptions) {
     k.onClick(tag, options.onClick);
   }
 
-  return k.add(buttonComponents);
+  return options.parent
+    ? options.parent.add(buttonComponents)
+    : k.add(buttonComponents);
+}
+
+type IButton = Omit<IAddButtonOptions, "pos"> & {
+  text: string;
+  margin?: [number, number, number, number];
+};
+
+interface IMenuOptions {
+  pos: [number, number];
+  // pos: Vec2 | ((w: number, h: number) => Vec2);
+  padding?: [number, number, number, number];
+  color?: Color;
+}
+
+export function createMenu(menu: IMenuOptions, buttons: IButton[]) {
+  let visible = false;
+  let menuSize = { width: 0, height: 0 };
+  let buttonMaxWidth = 0;
+
+  let currentPosition = { x: menu.pos[0] || 0, y: menu.pos[1] || 0 };
+
+  const [menuPadTop, menuPadRight, menuPadBot, menuPadLeft] =
+    menu.padding || [];
+
+  if (menuPadTop) currentPosition.y += menuPadTop;
+  if (menuPadLeft) currentPosition.x += menuPadLeft;
+
+  let createButtonFunctions: ((m: GameObj) => GameObj<Comp>)[] = [];
+  buttons.forEach((b) => {
+    const { width, height } = k.formatText({
+      text: b.text,
+      font: b.font,
+      size: b.textHeight,
+    });
+    const [top, right, bot, left] = b.margin || [];
+
+    let totalHeight = height;
+    if (top) totalHeight += top;
+    if (bot) totalHeight += bot;
+
+    let totalWidth = width;
+    if (right) totalWidth += right;
+    if (left) totalWidth += left;
+
+    // Since buttons are stacked vertically within menus, width values
+    // don't stack; instead, we just need to track the widest button
+    buttonMaxWidth = Math.max(width, totalWidth);
+
+    // add top margin to y pos before drawing
+    if (top) currentPosition.y += top;
+
+    (function (x: number, y: number) {
+      createButtonFunctions.push((m) => {
+        return addButton(b.text, {
+          ...b,
+          parent: m,
+          pos: k.vec2(x, y),
+        });
+      });
+    })(currentPosition.x, currentPosition.y);
+
+    // add button height (minus top margin already applied) to y pos
+    // after drawing
+    currentPosition.y += totalHeight - (top || 0);
+
+    // Since buttons are stacked vertically within menus, height and
+    // vertical margin values simply get added to the height of the menu
+    menuSize.height += totalHeight;
+  });
+
+  if (menuPadRight) menuSize.width += menuPadRight;
+  if (menuPadLeft) menuSize.width += menuPadLeft;
+  if (menuPadTop) menuSize.height += menuPadTop;
+  if (menuPadBot) menuSize.height += menuPadBot;
+
+  menuSize.width += buttonMaxWidth;
+
+  let menuRef: GameObj<Comp> | null = null;
+  let buttonsArray: GameObj<Comp>[] = [];
+  const createButtons = () => {
+    // clear out any old references (extra check)
+    if (menuRef) menuRef.destroy();
+    buttonsArray = [];
+
+    // create menu parent
+    menuRef = k.add([
+      k.pos(menu.pos[0], menu.pos[1]),
+      ...(menu.color
+        ? [k.rect(menuSize.width, menuSize.height), k.color(menu.color)]
+        : []),
+    ]);
+
+    // create new buttons
+    createButtonFunctions.forEach((cb) => buttonsArray.push(cb(menuRef!)));
+  };
+
+  return {
+    show() {
+      if (visible) return;
+
+      createButtons();
+      visible = true;
+    },
+    hide() {
+      if (!visible) return;
+
+      buttonsArray.forEach((b) => b.destroy());
+      if (menuRef) menuRef.destroy();
+      visible = false;
+    },
+    toggle() {
+      return visible ? this.hide() : this.show();
+    },
+  };
 }
