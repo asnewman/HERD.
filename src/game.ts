@@ -2,6 +2,7 @@ import { Comp, GameObj } from "kaboom";
 import { k } from "./kaboom";
 import { addButton } from "./lib";
 import { createSheep } from "./sheep";
+import { fillMap } from "./map";
 
 export interface IGameState {
   /**
@@ -145,20 +146,7 @@ export function startGame() {
     });
   });
 
-  const map = [
-    "┌─┐          ",
-    "│ │--        ",
-    "└─┘ |        ",
-    "    ---      ",
-    "      |      ",
-    "      |      ",
-    "   ---|      ",
-    "   |         ",
-    "   |-----    ",
-    "        | ┌─┐",
-    "        |-│ │",
-    "          └─┘",
-  ];
+  let map = fillMap();
 
   k.scene(SCENES.mapGeneration, () => {
     k.addLevel(map, {
@@ -167,12 +155,13 @@ export function startGame() {
       tiles: {
         "┌": () => [k.sprite(SPRITES.baseTopLeft), k.scale(2)],
         "│": () => [k.sprite(SPRITES.baseVertical), k.scale(2)],
+        x: () => [k.sprite(SPRITES.baseVertical), k.scale(2)],
+        o: () => [k.sprite(SPRITES.baseVertical), k.scale(2)],
         "└": () => [k.sprite(SPRITES.baseBottomLeft), k.scale(2)],
         "┐": () => [k.sprite(SPRITES.baseTopRight), k.scale(2)],
         "─": () => [k.sprite(SPRITES.baseHorizontal), k.scale(2)],
         "┘": () => [k.sprite(SPRITES.baseBottomRight), k.scale(2)],
-        "-": () => [k.sprite(SPRITES.path), k.scale(2)],
-        "|": () => [k.sprite(SPRITES.path), k.scale(2)],
+        p: () => [k.sprite(SPRITES.path), k.scale(2)],
         // " ": () => [sprite(SPRITES.empty)],
       },
     });
