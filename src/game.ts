@@ -3,6 +3,7 @@ import { k } from "./kaboom";
 import { createMenu } from "./lib";
 import { createParticleEmitter } from "./objects/explosion";
 import { SheepState, createSheep } from "./sheep";
+import { fillMap } from "./map";
 
 export interface IGameState {
   /**
@@ -20,6 +21,10 @@ export interface IGameState {
    * A set of the enemies that are currently part of the game.
    */
   enemies: Record<string, any>;
+  /**
+   * String representation of the map
+   */
+  map: string[];
 }
 
 export const SHADERS = {
@@ -135,6 +140,7 @@ export function startGame() {
     sheep: {},
     sheepSelected: new Set(),
     enemies: {},
+    map: [],
   };
 
   // load sprites
@@ -323,35 +329,33 @@ export function startGame() {
     m.show();
   });
 
-  const map = [
-    "┌─┐          ",
-    "│ │--        ",
-    "└─┘ |        ",
-    "    ---      ",
-    "      |      ",
-    "      |      ",
-    "   ---|      ",
-    "   |         ",
-    "   |-----    ",
-    "        | ┌─┐",
-    "        |-│ │",
-    "          └─┘",
-  ];
-
   k.scene(SCENES.mapGeneration, () => {
-    k.addLevel(map, {
+    gameState.map = fillMap();
+
+    k.addLevel(gameState.map, {
       tileWidth: 32,
       tileHeight: 32,
       tiles: {
         "┌": () => [k.sprite(SPRITES.baseTopLeft), k.scale(2)],
         "│": () => [k.sprite(SPRITES.baseVertical), k.scale(2)],
+        x: () => [k.sprite(SPRITES.baseVertical), k.scale(2)],
+        o: () => [k.sprite(SPRITES.baseVertical), k.scale(2)],
         "└": () => [k.sprite(SPRITES.baseBottomLeft), k.scale(2)],
         "┐": () => [k.sprite(SPRITES.baseTopRight), k.scale(2)],
         "─": () => [k.sprite(SPRITES.baseHorizontal), k.scale(2)],
         "┘": () => [k.sprite(SPRITES.baseBottomRight), k.scale(2)],
-        "-": () => [k.sprite(SPRITES.path), k.scale(2)],
-        "|": () => [k.sprite(SPRITES.path), k.scale(2)],
+        p: () => [k.sprite(SPRITES.path), k.scale(2)],
         // " ": () => [sprite(SPRITES.empty)],
+      },
+    });
+
+    const sheep = createSheep(gameState, {
+      name: `sheepish`,
+      pos: [0, k.height() / 2],
+      initialState: SheepState.walking,
+      onDamage: () => {},
+      onDestroy: () => {
+        sheep.destroy();
       },
     });
   });
@@ -485,5 +489,5 @@ export function startGame() {
     emitter.emit();
   });
 
-  k.go(SCENES.fx);
+  k.go(SCENES.menu);
 }
