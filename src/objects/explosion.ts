@@ -2,7 +2,7 @@ import { BodyComp, GameObj } from "kaboom";
 import { k } from "../kaboom";
 import { Comp } from "kaboom";
 
-k.setGravity(800);
+// k.setGravity(800);
 
 interface IOptions {
   /**
