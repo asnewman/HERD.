@@ -1,6 +1,7 @@
 import { createDog } from "./dog";
 import { k } from "./kaboom";
 import { createMenu } from "./lib";
+import { createParticleEmitter } from "./objects/explosion";
 import { SheepState, createSheep } from "./sheep";
 
 export interface IGameState {
@@ -276,6 +277,7 @@ export function startGame() {
     sheepConfig: "sheep_config",
     mapGeneration: "map_generation",
     healthCombat: "healthCombat",
+    fx: "fx",
   };
 
   k.scene(SCENES.menu, () => {
@@ -309,7 +311,12 @@ export function startGame() {
         },
         {
           text: "Health & Combat Testing",
+          margin: [0, 0, p, 0],
           onClick: () => k.go(SCENES.healthCombat),
+        },
+        {
+          text: "Effects",
+          onClick: () => k.go(SCENES.fx),
         },
       ]
     );
@@ -461,5 +468,22 @@ export function startGame() {
     });
   });
 
-  k.go(SCENES.healthCombat);
+  k.scene(SCENES.fx, () => {
+    // TODO
+    const emitter = createParticleEmitter({
+      lifepan: 10,
+      emissionInterval: 0.5,
+      getParticle: () => [
+        k.circle(k.rand(20, 50)),
+        k.color(k.choose([k.RED, k.GREEN])),
+        k.scale(k.rand(0.5, 1)),
+      ],
+      particleLifespan: 0.3,
+      particlesPerEmission: 30,
+    });
+
+    emitter.emit();
+  });
+
+  k.go(SCENES.fx);
 }
