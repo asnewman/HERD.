@@ -109,9 +109,6 @@ export function createSheep(
        * direction before changing it.
        */
       directionTimeLimit: 0,
-      walking: {
-        direction: "right" as "left" | "right",
-      },
     };
 
     return {
@@ -188,12 +185,12 @@ export function createSheep(
 
         this.onStateEnter(SheepState.walking, () => {
           this.play("graze");
-          this.flipX = states.walking.direction === "left";
+          this.flipX = states.direction === "left";
         });
 
         this.onStateUpdate(SheepState.walking, () => {
           let moveValues: [number, number] = [-1, -1];
-          switch (states.walking.direction) {
+          switch (states.direction) {
             case "left": {
               moveValues = [-SHEEP_GRAZE_VELOCITY * k.dt(), 0];
               break;
