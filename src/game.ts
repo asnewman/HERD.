@@ -4,6 +4,7 @@ import { createMenu } from "./lib";
 import { createParticleEmitter } from "./objects/explosion";
 import { SheepState, createSheep } from "./sheep";
 import { fillMap } from "./map";
+import { alphaChannel } from "./components/alphaChannel";
 
 export interface IGameState {
   /**
@@ -330,6 +331,8 @@ export function startGame() {
   });
 
   k.scene(SCENES.mapGeneration, () => {
+    drawBg();
+
     gameState.map = fillMap();
 
     k.addLevel(gameState.map, {
@@ -361,6 +364,8 @@ export function startGame() {
   });
 
   k.scene(SCENES.sheepConfig, () => {
+    drawBg();
+
     // temporary: create a bunch of sheep in random positions
     const segmentWidth = k.width() / 5;
     const segmentHeight = k.height() / 5;
@@ -425,6 +430,8 @@ export function startGame() {
   });
 
   k.scene(SCENES.healthCombat, () => {
+    drawBg();
+
     const damageSounds = [
       SOUNDS.sheepHurt1,
       SOUNDS.sheepHurt2,
@@ -473,26 +480,27 @@ export function startGame() {
   });
 
   k.scene(SCENES.fx, () => {
+    drawBg();
+
     const lifepan = 1;
-    const emissionInterval = 1;
+    const emissionInterval = 2;
 
     const smokeEmitter = createParticleEmitter({
       lifepan,
-      emissionInterval,
+      // emissionInterval,
       getParticle: () => [
         k.circle(k.rand(100, 150)),
         k.color(k.Color.fromHex("#191519")),
         k.scale(1),
+        k.z(0),
+        alphaChannel(0.5),
       ],
-      getParticleVelocity: () => [
-         k.rand(-150, 150),
-         k.rand(-150, 150)
-      ],
+      getParticleVelocity: () => [k.rand(-250, 250), k.rand(-250, 250)],
       onParticleUpdate: (particle, { timeAlive }) => {
-        particle.scale = k.vec2((timeAlive * .2) + 1, (timeAlive * .2) + 1);
+        particle.scale = k.vec2(timeAlive * 0.4 + 1, timeAlive * 0.4 + 1);
       },
-      particleLifespan: .3,
-      particleFadeDuration: .3,
+      particleLifespan: 0.3,
+      particleFadeDuration: 0.3,
       particlesPerEmission: 10,
     });
 
@@ -503,16 +511,14 @@ export function startGame() {
         k.circle(k.rand(1, 30)),
         k.color(k.Color.fromHex("#FFED64")),
         k.scale(k.rand(0.5, 1)),
+        k.z(1),
       ],
-      getParticleVelocity: () => [
-         k.rand(-600, 600),
-         k.rand(-600, 600)
-      ],
+      getParticleVelocity: () => [k.rand(-600, 600), k.rand(-600, 600)],
       onParticleUpdate: (particle, { timeAlive }) => {
-        particle.scale = k.vec2(1 - (timeAlive * .5), 1 - (timeAlive * .5));
+        particle.scale = k.vec2(1 - timeAlive * 0.5, 1 - timeAlive * 0.5);
       },
       particleLifespan: 0.3,
-      particleFadeDuration: .15,
+      particleFadeDuration: 0.15,
       particlesPerEmission: 30,
     });
 
@@ -521,8 +527,19 @@ export function startGame() {
       smokeEmitter.emit(pos);
       sparkEmitter.emit(pos);
     });
-
   });
 
   k.go(SCENES.menu);
+}
+
+function drawBg() {
+  k.add([
+    k.sprite(SPRITES.grassTile, {
+      width: k.width(),
+      height: k.height(),
+      tiled: true,
+    }),
+    k.pos(0, 0),
+    k.z(0),
+  ]);
 }
