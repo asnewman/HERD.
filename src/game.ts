@@ -473,20 +473,55 @@ export function startGame() {
   });
 
   k.scene(SCENES.fx, () => {
-    // TODO
-    const emitter = createParticleEmitter({
-      lifepan: 10,
-      emissionInterval: 0.5,
+    const lifepan = 1;
+    const emissionInterval = 1;
+
+    const smokeEmitter = createParticleEmitter({
+      lifepan,
+      emissionInterval,
       getParticle: () => [
-        k.circle(k.rand(20, 50)),
-        k.color(k.choose([k.RED, k.GREEN])),
+        k.circle(k.rand(100, 150)),
+        k.color(k.Color.fromHex("#191519")),
+        k.scale(1),
+      ],
+      getParticleVelocity: () => [
+         k.rand(-150, 150),
+         k.rand(-150, 150)
+      ],
+      onParticleUpdate: (particle, { timeAlive }) => {
+        particle.scale = k.vec2((timeAlive * .2) + 1, (timeAlive * .2) + 1);
+      },
+      particleLifespan: .3,
+      particleFadeDuration: .3,
+      particlesPerEmission: 10,
+    });
+
+    const sparkEmitter = createParticleEmitter({
+      lifepan,
+      emissionInterval,
+      getParticle: () => [
+        k.circle(k.rand(1, 30)),
+        k.color(k.Color.fromHex("#FFED64")),
         k.scale(k.rand(0.5, 1)),
       ],
+      getParticleVelocity: () => [
+         k.rand(-600, 600),
+         k.rand(-600, 600)
+      ],
+      onParticleUpdate: (particle, { timeAlive }) => {
+        particle.scale = k.vec2(1 - (timeAlive * .5), 1 - (timeAlive * .5));
+      },
       particleLifespan: 0.3,
+      particleFadeDuration: .15,
       particlesPerEmission: 30,
     });
 
-    emitter.emit();
+    k.onClick(() => {
+      const pos = k.mousePos();
+      smokeEmitter.emit(pos);
+      sparkEmitter.emit(pos);
+    });
+
   });
 
   k.go(SCENES.menu);

@@ -1,12 +1,10 @@
-import { BodyComp, GameObj } from "kaboom";
+import { AreaComp, BodyComp, EventController, GameObj, PosComp, ScaleComp, Vec2 } from "kaboom";
 import { k } from "../kaboom";
 import { Comp } from "kaboom";
 
-// k.setGravity(800);
-
 interface IOptions {
   /**
-   * The lifespan of the emitter (in seconds)
+   * The lifespan of the emitter (in seconds), or -1 for infinite
    */
   lifepan: number;
   /**
@@ -21,6 +19,8 @@ interface IOptions {
    * The lifespan of each particle (in seconds)
    */
   particleLifespan?: number;
+
+  particleFadeDuration?: number;
   /**
    * Callback function returning an array of components responsible
    * for rendering the particle - should include a sprite or primitive
@@ -30,43 +30,79 @@ interface IOptions {
     emissionIndex: number;
     particleIndex: number;
   }) => Comp[];
+  getParticleVelocity: (arg: {
+    emissionIndex: number;
+    particleIndex: number;
+    timeAlive: number
+  }) => [number, number];
+  onParticleUpdate?: (
+    particle: GameObj<PosComp | AreaComp | BodyComp | ScaleComp>, 
+    arg: {
+      emissionIndex: number;
+      particleIndex: number;
+      timeAlive: number
+    }
+  ) => void;
 }
 
 export function createParticleEmitter(options: IOptions) {
   const particlesPerEmission = options.particlesPerEmission || 1;
 
-  const emit = () => {
-    let i = 0;
-    const ev = k.loop(options.emissionInterval, () => {
+  const emit = (pos: Vec2) => {
+    let particles: GameObj[] = [];
+    let updateEvents: EventController[] = [];
+
+    const loopEvent = k.loop(options.emissionInterval, () => {
+      let i = 0;
       for (let j = 0; j < particlesPerEmission; j++) {
-        const item = k.add([
-          k.pos(k.mousePos()),
-          ...options.getParticle({ emissionIndex: i, particleIndex: j }),
+        const emissionIndex = i;
+        const particleIndex = j;
+
+        const particle = k.add([
+          k.pos(pos.x, pos.y),
+          ...options.getParticle({ emissionIndex, particleIndex }),
           k.anchor("center"),
           k.area({ collisionIgnore: ["particle"] }),
           k.body(),
           ...(options.particleLifespan
             ? [
                 k.lifespan(options.particleLifespan, {
-                  fade: options.particleLifespan / 2,
+                  fade: options.particleFadeDuration,
                 }),
               ]
             : []),
           k.opacity(1),
-          k.move(k.choose([k.LEFT, k.RIGHT]), k.rand(60, 240)),
           "particle",
-        ]) as GameObj<BodyComp>;
+        ]) as GameObj<BodyComp | PosComp | AreaComp | ScaleComp>;
 
-        // item.onUpdate(() => {
-        //   item;
-        // });
+        particles.push(particle);
 
-        item.jump(k.rand(320, 640));
+        let timeAlive = 0;
+        const [x,y] = options.getParticleVelocity({ emissionIndex, particleIndex, timeAlive });
+        const updateEvent = particle.onUpdate(() => {
+          console.log("timeAlive", timeAlive);
+          particle.move(x, y)
+          if (options.onParticleUpdate) {
+            options.onParticleUpdate(particle, { emissionIndex, particleIndex, timeAlive });
+          }
+
+          timeAlive += k.dt();
+        });
+        updateEvents.push(updateEvent);
+
         i++;
       }
     });
 
-    setTimeout(() => ev.cancel(), options.lifepan * 1000);
+    if (options.lifepan !== -1) {
+      k.wait(options.lifepan, () => {
+        loopEvent.cancel();
+        updateEvents.forEach(ue => ue.cancel());
+        particles.forEach(p => p.destroy());
+        particles = [];
+        updateEvents = [];
+      });
+    }
   };
 
   return {
