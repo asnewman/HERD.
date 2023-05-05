@@ -5,6 +5,7 @@ import {
   GameObj,
   PosComp,
   ScaleComp,
+  ShaderComp,
   Vec2,
 } from "kaboom";
 import { k } from "../kaboom";
@@ -45,7 +46,7 @@ interface IOptions {
     timeAlive: number;
   }) => [number, number];
   onParticleUpdate?: (
-    particle: GameObj<PosComp | AreaComp | BodyComp | ScaleComp>,
+    particle: GameObj<PosComp | AreaComp | BodyComp | ScaleComp | ShaderComp>,
     arg: {
       emissionIndex: number;
       particleIndex: number;
@@ -59,11 +60,11 @@ export function createParticleEmitter(options: IOptions) {
 
   const emit = (pos: Vec2) => {
     let updateEvents: EventController[] = [];
+    let particles: GameObj[] = [];
 
     const loopEvent = k.loop(
       options.emissionInterval || options.lifepan + 1,
       () => {
-        console.log("emission");
         let i = 0;
         for (let j = 0; j < particlesPerEmission; j++) {
           const emissionIndex = i;
@@ -82,9 +83,10 @@ export function createParticleEmitter(options: IOptions) {
                   }),
                 ]
               : []),
-            k.opacity(1),
             "particle",
-          ]) as GameObj<BodyComp | PosComp | AreaComp | ScaleComp>;
+          ]) as GameObj<BodyComp | PosComp | AreaComp | ScaleComp | ShaderComp>;
+
+          particles.push(particle);
 
           let timeAlive = 0;
           const [x, y] = options.getParticleVelocity({
@@ -117,6 +119,11 @@ export function createParticleEmitter(options: IOptions) {
         loopEvent.cancel();
         updateEvents.forEach((ue) => ue.cancel());
         updateEvents = [];
+
+        if (!options.particleLifespan) {
+          particles.forEach((p) => p.destroy());
+          particles = [];
+        }
       });
     }
   };

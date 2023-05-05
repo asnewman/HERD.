@@ -380,6 +380,7 @@ export function startGame() {
             xStart + segmentWidth / 2 + getOffset(),
             yStart + segmentHeight / 2 + getOffset(),
           ],
+          selectable: true,
         });
       }
     }
@@ -482,50 +483,49 @@ export function startGame() {
   k.scene(SCENES.fx, () => {
     drawBg();
 
-    const lifepan = 1;
-    const emissionInterval = 2;
+    const lifepan = 0.8;
 
     const smokeEmitter = createParticleEmitter({
       lifepan,
-      // emissionInterval,
       getParticle: () => [
-        k.circle(k.rand(100, 150)),
-        k.color(k.Color.fromHex("#191519")),
+        k.circle(k.rand(70, 120)),
+        k.color(k.Color.fromHex("#555555")),
         k.scale(1),
         k.z(0),
-        alphaChannel(0.5),
+        // alphaChannel(0.5),
       ],
-      getParticleVelocity: () => [k.rand(-250, 250), k.rand(-250, 250)],
+      getParticleVelocity: () => [k.rand(-150, 150), k.rand(-150, 150)],
       onParticleUpdate: (particle, { timeAlive }) => {
         particle.scale = k.vec2(timeAlive * 0.4 + 1, timeAlive * 0.4 + 1);
+        // particle.uniform["u_alpha"] = 1 - timeAlive * 2;
       },
-      particleLifespan: 0.3,
-      particleFadeDuration: 0.3,
+      particleLifespan: 0.6,
       particlesPerEmission: 10,
     });
 
     const sparkEmitter = createParticleEmitter({
       lifepan,
-      emissionInterval,
       getParticle: () => [
         k.circle(k.rand(1, 30)),
         k.color(k.Color.fromHex("#FFED64")),
         k.scale(k.rand(0.5, 1)),
         k.z(1),
+        // alphaChannel(0.4),
       ],
       getParticleVelocity: () => [k.rand(-600, 600), k.rand(-600, 600)],
       onParticleUpdate: (particle, { timeAlive }) => {
-        particle.scale = k.vec2(1 - timeAlive * 0.5, 1 - timeAlive * 0.5);
+        particle.scale = k.vec2(1 - timeAlive * 2, 1 - timeAlive * 2);
+        // particle.uniform["u_alpha"] = 1 - timeAlive;
       },
-      particleLifespan: 0.3,
-      particleFadeDuration: 0.15,
-      particlesPerEmission: 30,
+      particleLifespan: 0.45,
+      particlesPerEmission: 20,
     });
 
     k.onClick(() => {
       const pos = k.mousePos();
       smokeEmitter.emit(pos);
       sparkEmitter.emit(pos);
+      k.shake(5);
     });
   });
 
