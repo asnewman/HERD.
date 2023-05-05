@@ -1,134 +1,42 @@
-import {
-  AreaComp,
-  BodyComp,
-  EventController,
-  GameObj,
-  PosComp,
-  ScaleComp,
-  ShaderComp,
-  Vec2,
-} from "kaboom";
+import { createParticleEmitter } from "../lib";
 import { k } from "../kaboom";
-import { Comp } from "kaboom";
+import { Vec2 } from "kaboom";
 
-interface IOptions {
-  /**
-   * The lifespan of the emitter (in seconds), or -1 for infinite
-   */
-  lifepan: number;
-  /**
-   * The interval between particle emissions (in seconds). If not specified,
-   * only a single emission will happen.
-   */
-  emissionInterval?: number;
-  /**
-   * The number of particles per emiission.
-   */
-  particlesPerEmission?: number;
-  /**
-   * The lifespan of each particle (in seconds)
-   */
-  particleLifespan?: number;
+const lifepan = 0.8;
+const smokeEmitter = createParticleEmitter({
+  lifepan,
+  getParticle: () => [
+    k.circle(k.rand(70, 120)),
+    k.color(k.Color.fromHex("#555555")),
+    k.scale(1),
+    k.z(0),
+  ],
+  getParticleVelocity: () => [k.rand(-150, 150), k.rand(-150, 150)],
+  onParticleUpdate: (particle, { timeAlive }) => {
+    particle.scale = k.vec2(timeAlive * 0.4 + 1, timeAlive * 0.4 + 1);
+  },
+  particleLifespan: 0.6,
+  particlesPerEmission: 10,
+});
 
-  particleFadeDuration?: number;
-  /**
-   * Callback function returning an array of components responsible
-   * for rendering the particle - should include a sprite or primitive
-   * @param particleIndex
-   */
-  getParticle: (arg: {
-    emissionIndex: number;
-    particleIndex: number;
-  }) => Comp[];
-  getParticleVelocity: (arg: {
-    emissionIndex: number;
-    particleIndex: number;
-    timeAlive: number;
-  }) => [number, number];
-  onParticleUpdate?: (
-    particle: GameObj<PosComp | AreaComp | BodyComp | ScaleComp | ShaderComp>,
-    arg: {
-      emissionIndex: number;
-      particleIndex: number;
-      timeAlive: number;
-    }
-  ) => void;
-}
+const sparkEmitter = createParticleEmitter({
+  lifepan,
+  getParticle: () => [
+    k.circle(k.rand(1, 30)),
+    k.color(k.Color.fromHex("#FFED64")),
+    k.scale(k.rand(0.5, 1)),
+    k.z(1),
+  ],
+  getParticleVelocity: () => [k.rand(-600, 600), k.rand(-600, 600)],
+  onParticleUpdate: (particle, { timeAlive }) => {
+    particle.scale = k.vec2(1 - timeAlive * 2, 1 - timeAlive * 2);
+  },
+  particleLifespan: 0.45,
+  particlesPerEmission: 20,
+});
 
-export function createParticleEmitter(options: IOptions) {
-  const particlesPerEmission = options.particlesPerEmission || 1;
-
-  const emit = (pos: Vec2) => {
-    let updateEvents: EventController[] = [];
-    let particles: GameObj[] = [];
-
-    const loopEvent = k.loop(
-      options.emissionInterval || options.lifepan + 1,
-      () => {
-        let i = 0;
-        for (let j = 0; j < particlesPerEmission; j++) {
-          const emissionIndex = i;
-          const particleIndex = j;
-
-          const particle = k.add([
-            k.pos(pos.x, pos.y),
-            ...options.getParticle({ emissionIndex, particleIndex }),
-            k.anchor("center"),
-            k.area({ collisionIgnore: ["particle"] }),
-            k.body(),
-            ...(options.particleLifespan
-              ? [
-                  k.lifespan(options.particleLifespan, {
-                    fade: options.particleFadeDuration,
-                  }),
-                ]
-              : []),
-            "particle",
-          ]) as GameObj<BodyComp | PosComp | AreaComp | ScaleComp | ShaderComp>;
-
-          particles.push(particle);
-
-          let timeAlive = 0;
-          const [x, y] = options.getParticleVelocity({
-            emissionIndex,
-            particleIndex,
-            timeAlive,
-          });
-          const updateEvent = particle.onUpdate(() => {
-            // console.log("timeAlive", timeAlive);
-            particle.move(x, y);
-            if (options.onParticleUpdate) {
-              options.onParticleUpdate(particle, {
-                emissionIndex,
-                particleIndex,
-                timeAlive,
-              });
-            }
-
-            timeAlive += k.dt();
-          });
-          updateEvents.push(updateEvent);
-
-          i++;
-        }
-      }
-    );
-
-    if (options.lifepan !== -1) {
-      k.wait(options.lifepan, () => {
-        loopEvent.cancel();
-        updateEvents.forEach((ue) => ue.cancel());
-        updateEvents = [];
-
-        if (!options.particleLifespan) {
-          particles.forEach((p) => p.destroy());
-          particles = [];
-        }
-      });
-    }
-  };
-
-  return {
-    emit,
-  };
+export function createExplosion(pos: Vec2) {
+  smokeEmitter.emit(pos);
+  sparkEmitter.emit(pos);
+  k.shake(5);
 }

@@ -1,5 +1,17 @@
 import { k } from "./kaboom";
-import { Color, Comp, GameObj, Vec2, CompList } from "kaboom";
+import {
+  Color,
+  Comp,
+  GameObj,
+  Vec2,
+  CompList,
+  AreaComp,
+  BodyComp,
+  EventController,
+  PosComp,
+  ScaleComp,
+  ShaderComp,
+} from "kaboom";
 
 type IButtonTextComp = Comp & { setText: (text: string) => void };
 
@@ -200,5 +212,134 @@ export function createMenu(menu: IMenuOptions, buttons: IButton[]) {
     toggle() {
       return visible ? this.hide() : this.show();
     },
+  };
+}
+
+interface IParticleEmitterOptions {
+  /**
+   * The lifespan of the emitter (in seconds), or -1 for infinite
+   */
+  lifepan: number;
+  /**
+   * The interval between particle emissions (in seconds). If not specified,
+   * only a single emission will happen.
+   */
+  emissionInterval?: number;
+  /**
+   * The number of particles per emiission.
+   */
+  particlesPerEmission?: number;
+  /**
+   * The lifespan of each particle (in seconds)
+   */
+  particleLifespan?: number;
+  /**
+   * Callback function returning an array of components responsible
+   * for rendering the particle - should include a sprite or primitive
+   * @param particleIndex
+   */
+  getParticle: (arg: {
+    emissionIndex: number;
+    particleIndex: number;
+  }) => Comp[];
+  /**
+   *  Callback function returning the velocity of a given particle.
+   * @param arg
+   * @returns
+   */
+  getParticleVelocity: (arg: {
+    emissionIndex: number;
+    particleIndex: number;
+    timeAlive: number;
+  }) => [number, number];
+  /**
+   * Callback function executed on each update of a particle. Can be used
+   * for manually adjusting scale, opacity, etc.
+   * @param particle
+   * @param arg
+   * @returns
+   */
+  onParticleUpdate?: (
+    particle: GameObj<PosComp | AreaComp | BodyComp | ScaleComp | ShaderComp>,
+    arg: {
+      emissionIndex: number;
+      particleIndex: number;
+      timeAlive: number;
+    }
+  ) => void;
+}
+
+export function createParticleEmitter(options: IParticleEmitterOptions) {
+  const particlesPerEmission = options.particlesPerEmission || 1;
+
+  const emit = (pos: Vec2) => {
+    let updateEvents: EventController[] = [];
+    let particles: GameObj[] = [];
+
+    const loopEvent = k.loop(
+      options.emissionInterval || options.lifepan + 1,
+      () => {
+        let i = 0;
+        for (let j = 0; j < particlesPerEmission; j++) {
+          const emissionIndex = i;
+          const particleIndex = j;
+
+          const particle = k.add([
+            k.pos(pos.x, pos.y),
+            ...options.getParticle({ emissionIndex, particleIndex }),
+            k.anchor("center"),
+            k.area({ collisionIgnore: ["particle"] }),
+            k.body(),
+            ...(options.particleLifespan
+              ? [k.lifespan(options.particleLifespan)]
+              : []),
+            "particle",
+            // TODO: types are a bit messy
+          ]) as GameObj<BodyComp | PosComp | AreaComp | ScaleComp | ShaderComp>;
+
+          particles.push(particle);
+
+          let timeAlive = 0;
+          const [x, y] = options.getParticleVelocity({
+            emissionIndex,
+            particleIndex,
+            timeAlive,
+          });
+          const updateEvent = particle.onUpdate(() => {
+            // console.log("timeAlive", timeAlive);
+            particle.move(x, y);
+            if (options.onParticleUpdate) {
+              options.onParticleUpdate(particle, {
+                emissionIndex,
+                particleIndex,
+                timeAlive,
+              });
+            }
+
+            timeAlive += k.dt();
+          });
+          updateEvents.push(updateEvent);
+
+          i++;
+        }
+      }
+    );
+
+    if (options.lifepan !== -1) {
+      k.wait(options.lifepan, () => {
+        loopEvent.cancel();
+        updateEvents.forEach((ue) => ue.cancel());
+        updateEvents = [];
+
+        if (!options.particleLifespan) {
+          particles.forEach((p) => p.destroy());
+          particles = [];
+        }
+      });
+    }
+  };
+
+  return {
+    emit,
   };
 }
