@@ -73,18 +73,21 @@ function findStart(): [number, number] | undefined {
 
 function fillMap(): string[] {
   map = [
-    "┌─┐          ",
-    "│ x          ",
-    "└─┘          ",
-    "             ",
-    "             ",
-    "             ",
-    "             ",
-    "             ",
-    "             ",
-    "          ┌─┐",
-    "          o │",
-    "          └─┘",
+    "┌─┐                       ",
+    "│ x                       ",
+    "└─┘                       ",
+    "                          ",
+    "                          ",
+    "                          ",
+    "                          ",
+    "                          ",
+    "                          ",
+    "                          ",
+    "                          ",
+    "                          ",
+    "                       ┌─┐",
+    "                       o │",
+    "                       └─┘",
   ];
   const start = findStart();
 
