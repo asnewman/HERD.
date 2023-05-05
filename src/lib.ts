@@ -366,6 +366,7 @@ export function initCamera(levelSize: Vec2 = k.vec2(k.width(), k.height())) {
   function handleMoveCamera(key: Key) {
     const currentPos = k.camPos();
 
+    // TODO: this is wrong, fix
     const minX = levelSize.x / 2;
     const minY = levelSize.y / 2;
 
