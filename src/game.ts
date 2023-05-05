@@ -376,7 +376,7 @@ export function startGame() {
         const yStart = y * segmentHeight;
         createSheep(gameState, {
           name: `sheep${x}${y}`,
-          type: "bomber",
+          type: "standard",
           pos: [
             xStart + segmentWidth / 2 + getOffset(),
             yStart + segmentHeight / 2 + getOffset(),
