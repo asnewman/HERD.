@@ -1,8 +1,10 @@
 import { createDog } from "./dog";
 import { k } from "./kaboom";
 import { createMenu } from "./lib";
+import { createParticleEmitter } from "./objects/explosion";
 import { SheepState, createSheep } from "./sheep";
 import { fillMap } from "./map";
+import { alphaChannel } from "./components/alphaChannel";
 
 export interface IGameState {
   /**
@@ -282,6 +284,7 @@ export function startGame() {
     sheepConfig: "sheep_config",
     mapGeneration: "map_generation",
     healthCombat: "healthCombat",
+    fx: "fx",
   };
 
   k.scene(SCENES.menu, () => {
@@ -315,7 +318,12 @@ export function startGame() {
         },
         {
           text: "Health & Combat Testing",
+          margin: [0, 0, p, 0],
           onClick: () => k.go(SCENES.healthCombat),
+        },
+        {
+          text: "Effects",
+          onClick: () => k.go(SCENES.fx),
         },
       ]
     );
@@ -323,6 +331,8 @@ export function startGame() {
   });
 
   k.scene(SCENES.mapGeneration, () => {
+    drawBg();
+
     gameState.map = fillMap();
 
     k.addLevel(gameState.map, {
@@ -354,6 +364,8 @@ export function startGame() {
   });
 
   k.scene(SCENES.sheepConfig, () => {
+    drawBg();
+
     // temporary: create a bunch of sheep in random positions
     const segmentWidth = k.width() / 5;
     const segmentHeight = k.height() / 5;
@@ -368,6 +380,7 @@ export function startGame() {
             xStart + segmentWidth / 2 + getOffset(),
             yStart + segmentHeight / 2 + getOffset(),
           ],
+          selectable: true,
         });
       }
     }
@@ -418,6 +431,8 @@ export function startGame() {
   });
 
   k.scene(SCENES.healthCombat, () => {
+    drawBg();
+
     const damageSounds = [
       SOUNDS.sheepHurt1,
       SOUNDS.sheepHurt2,
@@ -462,10 +477,69 @@ export function startGame() {
     const dog1 = createDog(gameState, {
       name: "doggo1",
       pos: [k.width() / 2 + 100, k.height() / 2 + 100],
-      health: false,
     });
   });
 
-  // k.go(SCENES.mapGeneration);
-  k.go(SCENES.healthCombat);
+  k.scene(SCENES.fx, () => {
+    drawBg();
+
+    const lifepan = 0.8;
+
+    const smokeEmitter = createParticleEmitter({
+      lifepan,
+      getParticle: () => [
+        k.circle(k.rand(70, 120)),
+        k.color(k.Color.fromHex("#555555")),
+        k.scale(1),
+        k.z(0),
+        // alphaChannel(0.5),
+      ],
+      getParticleVelocity: () => [k.rand(-150, 150), k.rand(-150, 150)],
+      onParticleUpdate: (particle, { timeAlive }) => {
+        particle.scale = k.vec2(timeAlive * 0.4 + 1, timeAlive * 0.4 + 1);
+        // particle.uniform["u_alpha"] = 1 - timeAlive * 2;
+      },
+      particleLifespan: 0.6,
+      particlesPerEmission: 10,
+    });
+
+    const sparkEmitter = createParticleEmitter({
+      lifepan,
+      getParticle: () => [
+        k.circle(k.rand(1, 30)),
+        k.color(k.Color.fromHex("#FFED64")),
+        k.scale(k.rand(0.5, 1)),
+        k.z(1),
+        // alphaChannel(0.4),
+      ],
+      getParticleVelocity: () => [k.rand(-600, 600), k.rand(-600, 600)],
+      onParticleUpdate: (particle, { timeAlive }) => {
+        particle.scale = k.vec2(1 - timeAlive * 2, 1 - timeAlive * 2);
+        // particle.uniform["u_alpha"] = 1 - timeAlive;
+      },
+      particleLifespan: 0.45,
+      particlesPerEmission: 20,
+    });
+
+    k.onClick(() => {
+      const pos = k.mousePos();
+      smokeEmitter.emit(pos);
+      sparkEmitter.emit(pos);
+      k.shake(5);
+    });
+  });
+
+  k.go(SCENES.menu);
+}
+
+function drawBg() {
+  k.add([
+    k.sprite(SPRITES.grassTile, {
+      width: k.width(),
+      height: k.height(),
+      tiled: true,
+    }),
+    k.pos(0, 0),
+    k.z(0),
+  ]);
 }

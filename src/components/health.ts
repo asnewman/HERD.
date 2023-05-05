@@ -3,7 +3,7 @@ import { k } from "../kaboom";
 
 export interface HealthComp extends Comp {
   /**
-   * 
+   *
    * @returns whether or not health remains
    */
   isAlive: () => boolean;
@@ -20,6 +20,12 @@ export interface HealthComp extends Comp {
   getDamageTime: () => number;
 }
 
+/**
+ * The health bar will cease to be visible after this amount of time
+ * has elapsed since the last time damage was taken.
+ */
+const HEALTH_BAR_VISIBLITY_TIME = 3000;
+
 interface HealthOptions {
   maxHealth?: number;
   startingHealth?: number;
@@ -31,9 +37,15 @@ interface HealthOptions {
 
 export function health(options?: HealthOptions): HealthComp {
   let state = {
-    visible: true,
+    visible: false,
     current: options?.startingHealth || options?.maxHealth || 100,
     max: options?.maxHealth || 100,
+  };
+
+  let hideHealthbarTimeout: number | null = null;
+  const hideHealthbar = () => {
+    hideHealthbarTimeout = null;
+    state.visible = false;
   };
 
   const colorOutline = options?.colorOutline || k.RED.darken(150);
@@ -62,6 +74,12 @@ export function health(options?: HealthOptions): HealthComp {
       } else if (damageAnimState === "descending" && damageAnimCurrTime <= 0) {
         damageAnimState = "idle";
         damageAnimCurrTime = 0;
+
+        if (hideHealthbarTimeout) clearTimeout(hideHealthbarTimeout);
+        hideHealthbarTimeout = setTimeout(
+          hideHealthbar,
+          HEALTH_BAR_VISIBLITY_TIME
+        );
       }
 
       damageAnimCurrTime += k.dt() * (damageAnimState === "ascending" ? 1 : -1);
@@ -100,6 +118,8 @@ export function health(options?: HealthOptions): HealthComp {
     damage(amount) {
       if (state.current <= 0) return 0;
 
+      state.visible = true;
+
       damageAnimState = "ascending";
       damageAnimCurrTime = 0;
 
@@ -122,6 +142,6 @@ export function health(options?: HealthOptions): HealthComp {
     },
     isAlive() {
       return state.current > 0;
-    }
+    },
   };
 }

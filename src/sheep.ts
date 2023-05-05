@@ -13,6 +13,7 @@ import { health } from "./components/health";
 export enum SheepState {
   grazing = "grazing",
   walking = "walking",
+  pathing = "pathing"
 }
 
 const SHEEP_ANIM_SPEED = 0.6;
@@ -88,31 +89,26 @@ export function createSheep(
   function sheepState() {
     const states = {
       isSelected: false,
-      grazing: {
-        /**
-         * The last direction the sheep was moving in.
-         * Used to determine what the next direction should be.
-         */
-        lastDirection: "",
-        /**
-         * The current direction the sheep is moving in.
-         * Can be "left", "right", or "idle".
-         */
-        direction: "right",
-        /**
-         * The amount of time for which the sheep has been moving in the
-         * current direction.
-         */
-        cycleTime: 0,
-        /**
-         * The amount of time for which the sheep should move in the current
-         * direction before changing it.
-         */
-        cycleTimeLimit: 0,
-      },
-      walking: {
-        direction: "right" as "left" | "right",
-      },
+      /**
+       * The last direction the sheep was moving in.
+       * Used to determine what the next direction should be.
+       */
+      lastDirection: "",
+      /**
+       * The current direction the sheep is moving in.
+       * Can be "left", "right", or "idle".
+       */
+      direction: "right",
+      /**
+       * The amount of time for which the sheep has been moving in the
+       * current direction.
+       */
+      moveTime: 0,
+      /**
+       * The amount of time for which the sheep should move in the current
+       * direction before changing it.
+       */
+      directionTimeLimit: 0,
     };
 
     return {
@@ -121,28 +117,26 @@ export function createSheep(
         this: GameObj<StateComp | SpriteComp | AreaComp | BodyComp | PosComp>
       ) {
         this.onStateEnter(SheepState.grazing, async () => {
-          states.grazing = {
-            lastDirection: "right",
-            direction: ["left", "right", "idle"][k.rand(2)],
-            cycleTime: 0,
-            cycleTimeLimit: getDirectionTimeLimit(),
-          };
-          this.flipX = states.grazing.direction === "left";
+          states.lastDirection = "right"
+          states.direction = ["left", "right", "idle"][k.rand(2)]
+          states.moveTime = 0
+          states.directionTimeLimit = getDirectionTimeLimit()
+          this.flipX = states.direction === "left";
           this.play("graze");
         });
 
         // prevent each sheep from colliding with other sheep
         this.onCollide("sheep", () => {
-          states.grazing.direction = "idle";
-          states.grazing.cycleTime = 0;
-          states.grazing.cycleTimeLimit = getDirectionTimeLimit();
+          states.direction = "idle";
+          states.moveTime = 0;
+          states.directionTimeLimit = getDirectionTimeLimit();
         });
 
         this.onStateUpdate(SheepState.grazing, () => {
           const delta = k.dt();
 
           let moveValues: [number, number] = [-1, -1];
-          switch (states.grazing.direction) {
+          switch (states.direction) {
             case "idle": {
               moveValues = [0, 0];
               break;
@@ -158,45 +152,45 @@ export function createSheep(
           }
           this.move(...moveValues);
 
-          states.grazing.cycleTime += delta;
+          states.moveTime += delta;
 
           const shouldNotChangeDirection =
-            states.grazing.cycleTime <= states.grazing.cycleTimeLimit;
+            states.moveTime <= states.directionTimeLimit;
           if (shouldNotChangeDirection) {
             return;
           }
 
-          states.grazing.cycleTime = 0;
-          states.grazing.cycleTimeLimit = getDirectionTimeLimit();
+          states.moveTime = 0;
+          states.directionTimeLimit = getDirectionTimeLimit();
 
           // if currently idle, start moving in a direction
-          if (states.grazing.direction === "idle") {
+          if (states.direction === "idle") {
             // if the sheep was last going left, go right now
-            states.grazing.direction =
-              states.grazing.lastDirection === "right" ? "left" : "right";
+            states.direction =
+              states.lastDirection === "right" ? "left" : "right";
             // track last direction to know what direction to move in next time
-            states.grazing.lastDirection = states.grazing.direction;
+            states.lastDirection = states.direction;
             // sheep sprite faces right by default - flip it to the left if it's going left
-            this.flipX = states.grazing.direction === "left";
+            this.flipX = states.direction === "left";
             // play the grazing animation while moving
             this.play("graze");
             return;
           }
 
           // sheep was moving, so now should idle for a cycle
-          states.grazing.direction = "idle";
+          states.direction = "idle";
           this.stop();
           this.frame = 0;
         });
 
         this.onStateEnter(SheepState.walking, () => {
           this.play("graze");
-          this.flipX = states.walking.direction === "left";
+          this.flipX = states.direction === "left";
         });
 
         this.onStateUpdate(SheepState.walking, () => {
           let moveValues: [number, number] = [-1, -1];
-          switch (states.walking.direction) {
+          switch (states.direction) {
             case "left": {
               moveValues = [-SHEEP_GRAZE_VELOCITY * k.dt(), 0];
               break;
