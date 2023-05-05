@@ -9,18 +9,22 @@ import {
 import { k } from "./kaboom";
 import { IGameState, SHADERS, SPRITES } from "./game";
 import { health } from "./components/health";
+import { createExplosion } from "./objects/explosion";
 
 export enum SheepState {
   grazing = "grazing",
   walking = "walking",
-  pathing = "pathing"
+  pathing = "pathing",
 }
+
+export type SheepType = "standard" | "bomber" | "shielder" | "commando";
 
 const SHEEP_ANIM_SPEED = 0.6;
 const SHEEP_GRAZE_VELOCITY = 3000;
 
 interface ICreateSheepOptions {
   name: string;
+  type?: SheepType;
   pos: [number, number];
   initialState?: SheepState;
   health?: boolean;
@@ -66,14 +70,6 @@ export function createSheep(
       setSelected(value: boolean) {
         isSelected = value;
       },
-      setType(this: GameObj, type: "bomber" | "shielder" | "commando") {
-        if (type === "bomber") {
-          this.use(k.sprite(SPRITES.sheepBomber));
-          return;
-        }
-
-        this.use(k.sprite(SPRITES.sheep));
-      },
       toggleSelected() {
         const wasAlreadySelected = gameState.sheepSelected.has(sheep.name);
 
@@ -86,8 +82,9 @@ export function createSheep(
     };
   }
 
-  function sheepState() {
+  function sheepState(type: SheepType = "standard") {
     const states = {
+      type,
       isSelected: false,
       /**
        * The last direction the sheep was moving in.
@@ -111,16 +108,29 @@ export function createSheep(
       directionTimeLimit: 0,
     };
 
+    function setType(this: GameObj, type: SheepType) {
+      states.type = type;
+
+      if (type === "bomber") {
+        this.use(k.sprite(SPRITES.sheepBomber));
+        return;
+      }
+
+      this.use(k.sprite(SPRITES.sheep));
+    }
+
     return {
       id: "sheepState",
       add: function (
         this: GameObj<StateComp | SpriteComp | AreaComp | BodyComp | PosComp>
       ) {
+        setType.call(this, type);
+
         this.onStateEnter(SheepState.grazing, async () => {
-          states.lastDirection = "right"
-          states.direction = ["left", "right", "idle"][k.rand(2)]
-          states.moveTime = 0
-          states.directionTimeLimit = getDirectionTimeLimit()
+          states.lastDirection = "right";
+          states.direction = ["left", "right", "idle"][k.rand(2)];
+          states.moveTime = 0;
+          states.directionTimeLimit = getDirectionTimeLimit();
           this.flipX = states.direction === "left";
           this.play("graze");
         });
@@ -206,6 +216,10 @@ export function createSheep(
         // add the sheep to the game state
         gameState.sheep[options.name] = this;
       },
+      getType(this: GameObj) {
+        return states.type;
+      },
+      setType,
     };
   }
 
@@ -216,10 +230,7 @@ export function createSheep(
   const sheep = k.add([
     "sheep",
     { name: options.name },
-    health({
-      onDamage: options?.onDamage,
-      onDeath: options?.onDestroy,
-    }),
+    health({ onDamage }),
     sheepTag,
     k.pos(...options.pos),
     k.sprite(SPRITES.sheep, { animSpeed: SHEEP_ANIM_SPEED }),
@@ -231,11 +242,18 @@ export function createSheep(
     k.area(),
     ...(options.selectable ? [selectable()] : []),
     k.body(),
-    sheepState(),
+    sheepState(options.type),
     k.shader(SHADERS.damaged, {
       u_flash_intensity: 0,
     }),
   ]);
+
+  function onDamage() {
+    options.onDamage?.();
+    if (sheep.getType() === "bomber") {
+      createExplosion(sheep.pos);
+    }
+  }
 
   sheep.onUpdate(() => {
     sheep.uniform["u_flash_intensity"] = sheep.getDamageTime();
@@ -252,6 +270,8 @@ export function createSheep(
 
     sheep.setSelected(!wasAlreadySelected);
   });
+
+  sheep.toggleSelected;
 
   return sheep;
 }

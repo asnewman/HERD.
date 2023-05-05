@@ -1,6 +1,10 @@
 import { createParticleEmitter } from "../lib";
 import { k } from "../kaboom";
-import { Vec2 } from "kaboom";
+import { GameObj, Vec2 } from "kaboom";
+import { HEALTH_TAG, HealthComp } from "../components/health";
+
+export const EXPLOSION_DAMAGE = 1000;
+export const EXPLOSION_SHAKE = 5;
 
 const lifepan = 0.8;
 const smokeEmitter = createParticleEmitter({
@@ -17,6 +21,12 @@ const smokeEmitter = createParticleEmitter({
   },
   particleLifespan: 0.6,
   particlesPerEmission: 10,
+  onCollision: {
+    tag: HEALTH_TAG,
+    cb: (entity) => {
+      (entity as GameObj<HealthComp>).damage(EXPLOSION_DAMAGE);
+    },
+  },
 });
 
 const sparkEmitter = createParticleEmitter({
@@ -38,5 +48,5 @@ const sparkEmitter = createParticleEmitter({
 export function createExplosion(pos: Vec2) {
   smokeEmitter.emit(pos);
   sparkEmitter.emit(pos);
-  k.shake(5);
+  k.shake(EXPLOSION_SHAKE);
 }

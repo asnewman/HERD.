@@ -11,7 +11,7 @@ export interface HealthComp extends Comp {
    * @param damage damage to take
    * @returns remaining health
    */
-  damage: (damage: number) => number;
+  damage: (this: GameObj, damage: number) => number;
   /**
    * @returns the percentage of time elapsed (decimal between 0 and 1)
    * for the "damage" state; mostly used for animation timing, but could
@@ -25,6 +25,11 @@ export interface HealthComp extends Comp {
  * has elapsed since the last time damage was taken.
  */
 const HEALTH_BAR_VISIBLITY_TIME = 3000;
+
+/**
+ * Tag to identify entities with health.
+ */
+export const HEALTH_TAG = "entity-with-health";
 
 interface HealthOptions {
   maxHealth?: number;
@@ -63,6 +68,9 @@ export function health(options?: HealthOptions): HealthComp {
   return {
     id: "health",
     require: ["area"],
+    add(this: GameObj) {
+      this.use(HEALTH_TAG);
+    },
     update() {
       if (damageAnimState === "idle") return;
 
@@ -132,6 +140,8 @@ export function health(options?: HealthOptions): HealthComp {
         state.current = 0;
         if (options?.onDeath) {
           options.onDeath();
+        } else {
+          this.destroy();
         }
       }
 

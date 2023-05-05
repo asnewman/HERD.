@@ -4,6 +4,7 @@ import { createMenu } from "./lib";
 import { createExplosion } from "./objects/explosion";
 import { SheepState, createSheep } from "./sheep";
 import { fillMap } from "./map";
+import { HEALTH_TAG } from "./components/health";
 
 export interface IGameState {
   /**
@@ -347,7 +348,6 @@ export function startGame() {
         "─": () => [k.sprite(SPRITES.baseHorizontal), k.scale(2)],
         "┘": () => [k.sprite(SPRITES.baseBottomRight), k.scale(2)],
         p: () => [k.sprite(SPRITES.path), k.scale(2)],
-        // " ": () => [sprite(SPRITES.empty)],
       },
     });
 
@@ -446,32 +446,16 @@ export function startGame() {
       for (let y = 0; y < 5; y++) {
         const xStart = x * segmentWidth;
         const yStart = y * segmentHeight;
-        const s = createSheep(gameState, {
+        createSheep(gameState, {
           name: `sheep${x}${y}`,
+          type: k.choose(["standard", "bomber"]),
           pos: [
             xStart + segmentWidth / 2 + getOffset(),
             yStart + segmentHeight / 2 + getOffset(),
           ],
-          onDestroy() {
-            s.destroy();
-          },
         });
       }
     }
-
-    const sheep = createSheep(gameState, {
-      name: `sheepish`,
-      pos: [0, k.height() / 2],
-      initialState: SheepState.walking,
-      onDamage: () => {
-        // const i = Math.round(k.rand(damageSounds.length - 1));
-        // const s = damageSounds[i];
-        // k.play(s);
-      },
-      onDestroy: () => {
-        sheep.destroy();
-      },
-    });
 
     const dog1 = createDog(gameState, {
       name: "doggo1",

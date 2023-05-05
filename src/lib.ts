@@ -11,6 +11,7 @@ import {
   PosComp,
   ScaleComp,
   ShaderComp,
+  Collision,
 } from "kaboom";
 
 type IButtonTextComp = Comp & { setText: (text: string) => void };
@@ -267,6 +268,16 @@ interface IParticleEmitterOptions {
       timeAlive: number;
     }
   ) => void;
+  /**
+   * Callback function executed when a particle collides with a given tag.
+   * @param tag
+   * @param callback
+   * @returns
+   */
+  onCollision?: {
+    tag: string;
+    cb: (obj: GameObj<any>, col?: Collision | undefined) => void;
+  };
 }
 
 export function createParticleEmitter(options: IParticleEmitterOptions) {
@@ -289,13 +300,17 @@ export function createParticleEmitter(options: IParticleEmitterOptions) {
             ...options.getParticle({ emissionIndex, particleIndex }),
             k.anchor("center"),
             k.area({ collisionIgnore: ["particle"] }),
-            k.body(),
+            // k.body(),
             ...(options.particleLifespan
               ? [k.lifespan(options.particleLifespan)]
               : []),
             "particle",
             // TODO: types are a bit messy
           ]) as GameObj<BodyComp | PosComp | AreaComp | ScaleComp | ShaderComp>;
+
+          if (options.onCollision) {
+            particle.onCollide(options.onCollision.tag, options.onCollision.cb);
+          }
 
           particles.push(particle);
 
@@ -306,7 +321,6 @@ export function createParticleEmitter(options: IParticleEmitterOptions) {
             timeAlive,
           });
           const updateEvent = particle.onUpdate(() => {
-            // console.log("timeAlive", timeAlive);
             particle.move(x, y);
             if (options.onParticleUpdate) {
               options.onParticleUpdate(particle, {
