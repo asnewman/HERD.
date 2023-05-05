@@ -1,3 +1,4 @@
+import { SPRITES } from "./game";
 import { k } from "./kaboom";
 import {
   Color,
@@ -12,6 +13,7 @@ import {
   ScaleComp,
   ShaderComp,
   Collision,
+  Key,
 } from "kaboom";
 
 type IButtonTextComp = Comp & { setText: (text: string) => void };
@@ -356,4 +358,63 @@ export function createParticleEmitter(options: IParticleEmitterOptions) {
   return {
     emit,
   };
+}
+
+const CAMERA_VELOCITY = 5;
+
+export function initCamera(levelSize: Vec2 = k.vec2(k.width(), k.height())) {
+  function handleMoveCamera(key: Key) {
+    const currentPos = k.camPos();
+
+    const minX = levelSize.x / 2;
+    const minY = levelSize.y / 2;
+
+    if (["a", "left", "h"].includes(key)) {
+      k.camPos(Math.max(currentPos.x - CAMERA_VELOCITY, minX), currentPos.y);
+      return;
+    }
+    if (["d", "right", "l"].includes(key)) {
+      k.camPos(currentPos.x + CAMERA_VELOCITY, currentPos.y);
+      return;
+    }
+    if (["w", "up", "k"].includes(key)) {
+      k.camPos(currentPos.x, Math.max(currentPos.y - CAMERA_VELOCITY, minY));
+      return;
+    }
+    if (["s", "down", "j"].includes(key)) {
+      k.camPos(currentPos.x, currentPos.y + CAMERA_VELOCITY);
+      return;
+    }
+  }
+
+  const evs = [
+    k.onKeyDown("left", handleMoveCamera),
+    k.onKeyDown("right", handleMoveCamera),
+    k.onKeyDown("up", handleMoveCamera),
+    k.onKeyDown("down", handleMoveCamera),
+    k.onKeyDown("h", handleMoveCamera),
+    k.onKeyDown("j", handleMoveCamera),
+    k.onKeyDown("k", handleMoveCamera),
+    k.onKeyDown("l", handleMoveCamera),
+    k.onKeyDown("w", handleMoveCamera),
+    k.onKeyDown("a", handleMoveCamera),
+    k.onKeyDown("s", handleMoveCamera),
+    k.onKeyDown("d", handleMoveCamera),
+  ];
+
+  return () => {
+    evs.forEach((ev) => ev.cancel());
+  };
+}
+
+export function drawBg(levelSize: Vec2 = k.vec2(k.width(), k.height())) {
+  k.add([
+    k.sprite(SPRITES.grassTile, {
+      width: levelSize.x,
+      height: levelSize.y,
+      tiled: true,
+    }),
+    k.pos(0, 0),
+    k.z(0),
+  ]);
 }

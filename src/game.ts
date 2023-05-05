@@ -1,10 +1,11 @@
 import { createDog } from "./dog";
 import { k } from "./kaboom";
-import { createMenu } from "./lib";
+import { createMenu, drawBg, initCamera } from "./lib";
 import { createExplosion } from "./objects/explosion";
 import { SheepState, createSheep } from "./sheep";
 import { fillMap } from "./map";
 import { HEALTH_TAG } from "./components/health";
+import { Vec2 } from "kaboom";
 
 export interface IGameState {
   /**
@@ -433,6 +434,7 @@ export function startGame() {
 
   k.scene(SCENES.healthCombat, () => {
     drawBg();
+    initCamera();
 
     const damageSounds = [
       SOUNDS.sheepHurt1,
@@ -473,16 +475,4 @@ export function startGame() {
   });
 
   k.go(SCENES.menu);
-}
-
-function drawBg() {
-  k.add([
-    k.sprite(SPRITES.grassTile, {
-      width: k.width(),
-      height: k.height(),
-      tiled: true,
-    }),
-    k.pos(0, 0),
-    k.z(0),
-  ]);
 }
