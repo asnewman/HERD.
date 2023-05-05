@@ -225,23 +225,56 @@ export function createSheep(
           let moveValues: [number, number] = [-1, -1];
           this.flipX = states.direction === "left";
 
-          const tileX = Math.floor(this.pos.x / TILE_SIZE);
-          const tileY = Math.floor(this.pos.y / TILE_SIZE);
-
           switch (states.direction) {
             case "left": {
-              if (gameState.map[tileY][tileX] !== "p") {
+              const tileX = Math.ceil((this.pos.x - 1) / TILE_SIZE);
+              const tileY = Math.ceil(this.pos.y / TILE_SIZE);
+              if (
+                gameState.map[tileY][tileX] !== "p" &&
+                states.lastDirection === "down"
+              ) {
                 states.direction = "right";
+                states.lastDirection = "left";
+              } else if (gameState.map[tileY][tileX] !== "p") {
+                states.direction = "down";
+                states.lastDirection = "left";
               } else {
                 moveValues = [-SHEEP_GRAZE_VELOCITY * k.dt(), 0];
               }
               break;
             }
             case "right": {
-              if (gameState.map[tileY][tileX + 1] !== "p") {
+              const tileX = Math.ceil((this.pos.x + 1) / TILE_SIZE);
+              const tileY = Math.ceil(this.pos.y / TILE_SIZE);
+              if (
+                gameState.map[tileY][tileX] !== "p" &&
+                states.lastDirection === "down"
+              ) {
                 states.direction = "left";
+                states.lastDirection = "right";
+              } else if (
+                !gameState.map[tileY][tileX] ||
+                (gameState.map[tileY][tileX] !== "p" &&
+                  gameState.map[tileY][tileX] !== "x")
+              ) {
+                states.direction = "down";
+                states.lastDirection = "right";
               } else {
                 moveValues = [SHEEP_GRAZE_VELOCITY * k.dt(), 0];
+              }
+              break;
+            }
+            case "down": {
+              const tileX = Math.ceil(this.pos.x / TILE_SIZE);
+              const tileY = Math.ceil((this.pos.y + 1) / TILE_SIZE);
+              if (gameState.map[tileY][tileX] !== "p") {
+                states.direction = "right";
+                if (states.lastDirection !== "left") {
+                  states.direction = "left";
+                }
+                states.lastDirection = "down";
+              } else {
+                moveValues = [0, SHEEP_GRAZE_VELOCITY * k.dt()];
               }
               break;
             }
