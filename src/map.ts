@@ -113,4 +113,4 @@ function fillMap(): string[] {
   return map;
 }
 
-export { fillMap };
+export { fillMap, findStart };

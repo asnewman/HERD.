@@ -7,7 +7,7 @@ import {
   StateComp,
 } from "kaboom";
 import { k } from "./kaboom";
-import { IGameState, SHADERS, SPRITES } from "./game";
+import { IGameState, SHADERS, SPRITES, TILE_SIZE } from "./game";
 import { health } from "./components/health";
 import { createExplosion } from "./objects/explosion";
 
@@ -199,6 +199,9 @@ export function createSheep(
         });
 
         this.onStateUpdate(SheepState.walking, () => {
+          this.play("graze");
+          this.flipX = states.direction === "left";
+
           let moveValues: [number, number] = [-1, -1];
           switch (states.direction) {
             case "left": {
@@ -211,6 +214,41 @@ export function createSheep(
             }
           }
           this.move(...moveValues);
+        });
+
+        this.onStateEnter(SheepState.pathing, () => {
+          this.play("graze");
+          this.flipX = states.direction === "left";
+        });
+
+        this.onStateUpdate(SheepState.pathing, () => {
+          let moveValues: [number, number] = [-1, -1];
+          this.flipX = states.direction === "left";
+
+          const tileX = Math.floor(this.pos.x / TILE_SIZE);
+          const tileY = Math.floor(this.pos.y / TILE_SIZE);
+
+          switch (states.direction) {
+            case "left": {
+              if (gameState.map[tileY][tileX] !== "p") {
+                states.direction = "right";
+              } else {
+                moveValues = [-SHEEP_GRAZE_VELOCITY * k.dt(), 0];
+              }
+              break;
+            }
+            case "right": {
+              if (gameState.map[tileY][tileX + 1] !== "p") {
+                states.direction = "left";
+              } else {
+                moveValues = [SHEEP_GRAZE_VELOCITY * k.dt(), 0];
+              }
+              break;
+            }
+          }
+          if (!(moveValues[0] === -1 && moveValues[1] === -1)) {
+            this.move(...moveValues);
+          }
         });
 
         // add the sheep to the game state

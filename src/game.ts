@@ -3,9 +3,9 @@ import { k } from "./kaboom";
 import { createMenu, drawBg, initCamera } from "./lib";
 import { createExplosion } from "./objects/explosion";
 import { SheepState, createSheep } from "./sheep";
-import { fillMap } from "./map";
-import { HEALTH_TAG } from "./components/health";
-import { Vec2 } from "kaboom";
+import { fillMap, findStart } from "./map";
+
+export const TILE_SIZE = 48;
 
 export interface IGameState {
   /**
@@ -337,8 +337,8 @@ export function startGame() {
     gameState.map = fillMap();
 
     k.addLevel(gameState.map, {
-      tileWidth: 48,
-      tileHeight: 48,
+      tileWidth: TILE_SIZE,
+      tileHeight: TILE_SIZE,
       tiles: {
         "┌": () => [k.sprite(SPRITES.baseTopLeft), k.scale(3)],
         "│": () => [k.sprite(SPRITES.baseVertical), k.scale(3)],
@@ -353,10 +353,16 @@ export function startGame() {
       },
     });
 
+    const startPositionTile = findStart() || [0, 0];
+    const startPosition: [number, number] = [
+      startPositionTile[0] * TILE_SIZE,
+      startPositionTile[1] * TILE_SIZE,
+    ];
+
     const sheep = createSheep(gameState, {
       name: `sheepish`,
-      pos: [0, k.height() / 2],
-      initialState: SheepState.walking,
+      pos: startPosition,
+      initialState: SheepState.pathing,
       onDamage: () => {},
       onDestroy: () => {
         sheep.destroy();
