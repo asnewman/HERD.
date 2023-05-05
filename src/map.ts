@@ -73,39 +73,42 @@ function findStart(): [number, number] | undefined {
 
 function fillMap(): string[] {
   map = [
-    "┌─┐          ",
-    "│ x          ",
-    "└─┘          ",
-    "             ",
-    "             ",
-    "             ",
-    "             ",
-    "             ",
-    "             ",
-    "          ┌─┐",
-    "          o │",
-    "          └─┘",
+    "┌─┐                       ",
+    "│ xppppp                  ",
+    "└─┘    p                  ",
+    "       p                  ",
+    "  pppppp                  ",
+    "  p                       ",
+    "  pppppppppppppp          ",
+    "               p          ",
+    "               p          ",
+    "          pppppp          ",
+    "          p               ",
+    "     pppppp               ",
+    "     p                 ┌─┐",
+    "     ppppppp    pppppppo │",
+    "           pppppp      └─┘",
   ];
-  const start = findStart();
+  // const start = findStart();
 
-  let curr = start;
+  // let curr = start;
 
-  if (curr === undefined) {
-    console.error("no start found");
-    return map;
-  }
+  // if (curr === undefined) {
+  //   console.error("no start found");
+  //   return map;
+  // }
 
-  while (map[curr[Y]][curr[X]] !== "o") {
-    try {
-      curr = nextPath(curr);
-    } catch (e) {
-      console.error(e);
-      console.log("failed attempt");
-      console.log(map);
-      fillMap();
-      break;
-    }
-  }
+  // while (map[curr[Y]][curr[X]] !== "o") {
+  //   try {
+  //     curr = nextPath(curr);
+  //   } catch (e) {
+  //     console.error(e);
+  //     console.log("failed attempt");
+  //     console.log(map);
+  //     fillMap();
+  //     break;
+  //   }
+  // }
 
   return map;
 }

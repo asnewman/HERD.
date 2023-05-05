@@ -336,18 +336,19 @@ export function startGame() {
     gameState.map = fillMap();
 
     k.addLevel(gameState.map, {
-      tileWidth: 32,
-      tileHeight: 32,
+      tileWidth: 48,
+      tileHeight: 48,
       tiles: {
-        "┌": () => [k.sprite(SPRITES.baseTopLeft), k.scale(2)],
-        "│": () => [k.sprite(SPRITES.baseVertical), k.scale(2)],
-        x: () => [k.sprite(SPRITES.baseVertical), k.scale(2)],
-        o: () => [k.sprite(SPRITES.baseVertical), k.scale(2)],
-        "└": () => [k.sprite(SPRITES.baseBottomLeft), k.scale(2)],
-        "┐": () => [k.sprite(SPRITES.baseTopRight), k.scale(2)],
-        "─": () => [k.sprite(SPRITES.baseHorizontal), k.scale(2)],
-        "┘": () => [k.sprite(SPRITES.baseBottomRight), k.scale(2)],
-        p: () => [k.sprite(SPRITES.path), k.scale(2)],
+        "┌": () => [k.sprite(SPRITES.baseTopLeft), k.scale(3)],
+        "│": () => [k.sprite(SPRITES.baseVertical), k.scale(3)],
+        x: () => [k.sprite(SPRITES.baseVertical), k.scale(3)],
+        o: () => [k.sprite(SPRITES.baseVertical), k.scale(3)],
+        "└": () => [k.sprite(SPRITES.baseBottomLeft), k.scale(3)],
+        "┐": () => [k.sprite(SPRITES.baseTopRight), k.scale(3)],
+        "─": () => [k.sprite(SPRITES.baseHorizontal), k.scale(3)],
+        "┘": () => [k.sprite(SPRITES.baseBottomRight), k.scale(3)],
+        p: () => [k.sprite(SPRITES.path), k.scale(3), k.area(), "path"],
+        // " ": () => [sprite(SPRITES.empty)],
       },
     });
 
