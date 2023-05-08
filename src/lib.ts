@@ -360,66 +360,103 @@ export function createParticleEmitter(options: IParticleEmitterOptions) {
   };
 }
 
-const CAMERA_ACCELERATION = 5;
+const CAMERA_ACCELERATION = 0.8;
+const CAMERA_DECELERATION = 0.4;
 
-let cameraXVelocity = 0;
-let cameraYVelocity = 0;
+const cameraMaxVelocity = {
+  x: 15,
+  y: 15,
+};
+let cameraVelocity = {
+  x: 0,
+  y: 0,
+};
 
 export function initCamera(levelSize: Vec2 = k.vec2(k.width(), k.height())) {
-  function handleMoveCamera(key: Key) {
-    const currentPos = k.camPos();
+  const keysPressed = new Set<Key>();
+  k.onKeyDown((k) => keysPressed.add(k));
+  k.onKeyRelease((k) => keysPressed.delete(k));
+  k.onUpdate(() => {
+    // Track directions the camera should be moving towards according to keys pressed
+    const movement = {
+      left: keysPressed.has("a") || keysPressed.has("left"),
+      right: keysPressed.has("d") || keysPressed.has("right"),
+      up: keysPressed.has("w") || keysPressed.has("up"),
+      down: keysPressed.has("s") || keysPressed.has("down"),
+    };
 
+    // Apply acceleration to x and y velocities
+    if (movement.left) {
+      cameraVelocity.x = Math.max(
+        cameraVelocity.x - CAMERA_ACCELERATION,
+        -cameraMaxVelocity.x
+      );
+    } else if (movement.right) {
+      cameraVelocity.x = Math.min(
+        cameraVelocity.x + CAMERA_ACCELERATION,
+        cameraMaxVelocity.x
+      );
+    }
+    // Decelerate x if no movement keys are pressed for left/right
+    else if (cameraVelocity.x !== 0) {
+      const sign = Math.sign(cameraVelocity.x);
+      cameraVelocity.x -= CAMERA_DECELERATION * sign;
+      if (Math.abs(cameraVelocity.x) < CAMERA_DECELERATION) {
+        cameraVelocity.x = 0;
+      }
+    }
+    if (movement.up) {
+      cameraVelocity.y = Math.max(
+        cameraVelocity.y - CAMERA_ACCELERATION,
+        -cameraMaxVelocity.y
+      );
+    } else if (movement.down) {
+      cameraVelocity.y = Math.min(
+        cameraVelocity.y + CAMERA_ACCELERATION,
+        cameraMaxVelocity.y
+      );
+    }
+    // Decelerate y if no movement keys are pressed for up/down
+    else if (cameraVelocity.y !== 0) {
+      const sign = Math.sign(cameraVelocity.y);
+      cameraVelocity.y -= CAMERA_DECELERATION * sign;
+      if (Math.abs(cameraVelocity.y) < CAMERA_DECELERATION) {
+        cameraVelocity.y = 0;
+      }
+    }
+
+    const currentPos = k.camPos();
     const cameraWidth = k.width();
     const cameraHeight = k.height();
-    // camera's origin is in the center
     const minX = cameraWidth / 2;
     const minY = cameraHeight / 2;
     const maxX = levelSize.x - cameraWidth / 2;
     const maxY = levelSize.y - cameraHeight / 2;
 
-    if (["a", "left", "h"].includes(key)) {
-      k.camPos(
-        Math.max(currentPos.x - CAMERA_ACCELERATION, minX),
-        currentPos.y
-      );
-    } else if (["d", "right", "l"].includes(key)) {
-      k.camPos(
-        Math.min(currentPos.x + CAMERA_ACCELERATION, maxX),
-        currentPos.y
-      );
+    // if hitting left or right boundaries while moving in that direction, clear
+    // x velocity
+    if (
+      (currentPos.x === minX && cameraVelocity.x < 0) ||
+      (currentPos.x === maxX && cameraVelocity.x > 0)
+    ) {
+      cameraVelocity.x = 0;
     }
 
-    if (["w", "up", "k"].includes(key)) {
-      k.camPos(
-        currentPos.x,
-        Math.max(currentPos.y - CAMERA_ACCELERATION, minY)
-      );
-    } else if (["s", "down", "j"].includes(key)) {
-      k.camPos(
-        currentPos.x,
-        Math.min(currentPos.y + CAMERA_ACCELERATION, maxY)
-      );
+    // if hitting top or bottom boundaries while moving in that direction, clear
+    // y velocity
+    if (
+      (currentPos.y === minY && cameraVelocity.y < 0) ||
+      (currentPos.y === maxY && cameraVelocity.y > 0)
+    ) {
+      cameraVelocity.y = 0;
     }
-  }
 
-  const evs = [
-    k.onKeyDown("left", handleMoveCamera),
-    k.onKeyDown("right", handleMoveCamera),
-    k.onKeyDown("up", handleMoveCamera),
-    k.onKeyDown("down", handleMoveCamera),
-    k.onKeyDown("h", handleMoveCamera),
-    k.onKeyDown("j", handleMoveCamera),
-    k.onKeyDown("k", handleMoveCamera),
-    k.onKeyDown("l", handleMoveCamera),
-    k.onKeyDown("w", handleMoveCamera),
-    k.onKeyDown("a", handleMoveCamera),
-    k.onKeyDown("s", handleMoveCamera),
-    k.onKeyDown("d", handleMoveCamera),
-  ];
-
-  return () => {
-    evs.forEach((ev) => ev.cancel());
-  };
+    // apply velocity to camera position, constraining to level boundaries
+    k.camPos(
+      Math.max(Math.min(currentPos.x + cameraVelocity.x, maxX), minX),
+      Math.max(Math.min(currentPos.y + cameraVelocity.y, maxY), minY)
+    );
+  });
 }
 
 export function drawBg(levelSize: Vec2 = k.vec2(k.width(), k.height())) {
