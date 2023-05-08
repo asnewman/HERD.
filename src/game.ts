@@ -4,6 +4,7 @@ import { createMenu, drawBg, initCamera } from "./lib";
 import { createExplosion } from "./objects/explosion";
 import { SheepState, createSheep } from "./sheep";
 import { fillMap, findStart } from "./map";
+import { MAIN_MENU, hideUI, showUI } from "./menus";
 
 export const TILE_SIZE = 48;
 
@@ -281,11 +282,13 @@ export function startGame() {
   });
 
   const SCENES = {
+    mainMenu: "mainMenu",
     menu: "menu",
     sheepConfig: "sheep_config",
     mapGeneration: "map_generation",
     healthCombat: "healthCombat",
     fx: "fx",
+    levelOne: "levelOne", // temporary
   };
 
   k.scene(SCENES.menu, () => {
@@ -324,7 +327,13 @@ export function startGame() {
         },
         {
           text: "Effects",
+          margin: [0, 0, p, 0],
           onClick: () => k.go(SCENES.fx),
+        },
+        {
+          text: "Main Menu",
+          margin: [0, 0, p, 0],
+          onClick: () => k.go(SCENES.mainMenu),
         },
       ]
     );
@@ -439,8 +448,10 @@ export function startGame() {
   });
 
   k.scene(SCENES.healthCombat, () => {
-    drawBg();
-    initCamera();
+    const levelSize = k.vec2(k.width() * 2, k.height() * 2);
+
+    drawBg(levelSize);
+    initCamera(levelSize);
 
     const damageSounds = [
       SOUNDS.sheepHurt1,
@@ -449,8 +460,8 @@ export function startGame() {
     ];
 
     // temporary: create a bunch of sheep in random positions
-    const segmentWidth = k.width() / 5;
-    const segmentHeight = k.height() / 5;
+    const segmentWidth = levelSize.x / 5;
+    const segmentHeight = levelSize.y / 5;
     const getOffset = () => k.rand(-50, 50);
     for (let x = 0; x < 5; x++) {
       for (let y = 0; y < 5; y++) {
@@ -464,12 +475,24 @@ export function startGame() {
             yStart + segmentHeight / 2 + getOffset(),
           ],
         });
+
+        createSheep(gameState, {
+          name: `2sheep${x}${y}`,
+          type: k.choose(["standard", "bomber"]),
+          pos: [
+            xStart + segmentWidth / 2 + getOffset() * 10,
+            yStart + segmentHeight / 2 + getOffset() * 10,
+          ],
+        });
       }
     }
 
-    const dog1 = createDog(gameState, {
-      name: "doggo1",
-      pos: [k.width() / 2 + 100, k.height() / 2 + 100],
+    k.onClick(() => {
+      const pos = k.toWorld(k.mousePos());
+      createDog(gameState, {
+        name: "doggo-" + new Date().getTime().toString() + Math.random() * 100,
+        pos: [pos.x, pos.y],
+      });
     });
   });
 
@@ -480,5 +503,123 @@ export function startGame() {
     });
   });
 
-  k.go(SCENES.menu);
+  k.scene(SCENES.mainMenu, () => {
+    const btn = "px-4 py-1 text-5xl text-black-600 font-semibold bg-white";
+    showUI({
+      class: "w-6/12 h-full flex flex-col justify-center items-center",
+      template: `
+        <div>
+          <h1 class="text-9xl font-bold mb-2">HERD</h2>
+          <div class="flex flex-col space-y-2">
+            <button id="play" class="${btn}">Play</button>
+            <button id="options" class="${btn}">Options</button>
+            <button id="quit" class="${btn}">Quit</button>
+          </div>
+        </div>
+      `,
+      onClick: {
+        play: (e: MouseEvent) => {
+          hideUI();
+          k.go(SCENES.levelOne);
+          k.canvas.focus();
+        },
+        options: (e: MouseEvent) => {
+          console.log("Options clicked");
+        },
+        quit: (e: MouseEvent) => {
+          console.log("Quit clicked");
+        },
+      },
+    });
+    k.add([
+      k.sprite(SPRITES.grassTile, {
+        width: k.width() / 2,
+        height: k.height(),
+        tiled: true,
+      }),
+      k.pos(k.width() / 2, 0),
+      k.z(0),
+    ]);
+    createSheep(gameState, {
+      name: "shep",
+      type: "standard",
+      pos: [k.width() - k.width() / 4 - 100, k.height() / 2],
+    });
+  });
+
+  k.scene(SCENES.levelOne, () => {
+    const mapTileSize = 16;
+    const mapScale = 3;
+
+    gameState.map = [
+      "                                                      ",
+      "                                                      ",
+      "┌───────────┐                            ┌───────────┐",
+      "│           │                            │           │",
+      "│           │                            │           │",
+      "│           │                            │           │",
+      "│           │                            │           │",
+      "│           │                            │           │",
+      "│           xppppppppppppppppppppppppppppo           │",
+      "│           │                            │           │",
+      "│           │                            │           │",
+      "│           │                            │           │",
+      "│           │                            │           │",
+      "│           │                            │           │",
+      "│           │                            │           │",
+      "└───────────┘                            └───────────┘",
+      "                                                      ",
+      "                                                      ",
+    ];
+    const mapWidth = gameState.map[0].length * 48;
+    const mapHeight = gameState.map.length * 48;
+    const levelSize = k.vec2(mapWidth, mapHeight);
+    drawBg(levelSize);
+    initCamera(levelSize);
+
+    k.addLevel(gameState.map, {
+      tileWidth: TILE_SIZE,
+      tileHeight: TILE_SIZE,
+      tiles: {
+        "┌": () => [k.sprite(SPRITES.baseTopLeft), k.scale(mapScale), k.z(1)],
+        "│": () => [k.sprite(SPRITES.baseVertical), k.scale(mapScale), k.z(1)],
+        x: () => [k.sprite(SPRITES.baseVertical), k.scale(mapScale), k.z(1)],
+        o: () => [k.sprite(SPRITES.baseVertical), k.scale(mapScale), k.z(1)],
+        "└": () => [
+          k.sprite(SPRITES.baseBottomLeft),
+          k.scale(mapScale),
+          k.z(1),
+        ],
+        "┐": () => [k.sprite(SPRITES.baseTopRight), k.scale(mapScale), k.z(1)],
+        "─": () => [
+          k.sprite(SPRITES.baseHorizontal),
+          k.scale(mapScale),
+          k.z(1),
+        ],
+        "┘": () => [
+          k.sprite(SPRITES.baseBottomRight),
+          k.scale(mapScale),
+          k.z(1),
+        ],
+        p: () => [
+          k.sprite(SPRITES.path),
+          k.scale(mapScale),
+          k.z(1),
+          k.area(),
+          "path",
+        ],
+        // " ": () => [sprite(SPRITES.empty)],
+      },
+    });
+    // const start = findStart();
+
+    // let curr = start;
+
+    // if (curr === undefined) {
+    //   console.error("no start found");
+    //   return map;
+    // }
+  });
+
+  k.go(SCENES.mainMenu);
 }

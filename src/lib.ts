@@ -360,31 +360,45 @@ export function createParticleEmitter(options: IParticleEmitterOptions) {
   };
 }
 
-const CAMERA_VELOCITY = 5;
+const CAMERA_ACCELERATION = 5;
+
+let cameraXVelocity = 0;
+let cameraYVelocity = 0;
 
 export function initCamera(levelSize: Vec2 = k.vec2(k.width(), k.height())) {
   function handleMoveCamera(key: Key) {
     const currentPos = k.camPos();
 
-    // TODO: this is wrong, fix
-    const minX = levelSize.x / 2;
-    const minY = levelSize.y / 2;
+    const cameraWidth = k.width();
+    const cameraHeight = k.height();
+    // camera's origin is in the center
+    const minX = cameraWidth / 2;
+    const minY = cameraHeight / 2;
+    const maxX = levelSize.x - cameraWidth / 2;
+    const maxY = levelSize.y - cameraHeight / 2;
 
     if (["a", "left", "h"].includes(key)) {
-      k.camPos(Math.max(currentPos.x - CAMERA_VELOCITY, minX), currentPos.y);
-      return;
+      k.camPos(
+        Math.max(currentPos.x - CAMERA_ACCELERATION, minX),
+        currentPos.y
+      );
+    } else if (["d", "right", "l"].includes(key)) {
+      k.camPos(
+        Math.min(currentPos.x + CAMERA_ACCELERATION, maxX),
+        currentPos.y
+      );
     }
-    if (["d", "right", "l"].includes(key)) {
-      k.camPos(currentPos.x + CAMERA_VELOCITY, currentPos.y);
-      return;
-    }
+
     if (["w", "up", "k"].includes(key)) {
-      k.camPos(currentPos.x, Math.max(currentPos.y - CAMERA_VELOCITY, minY));
-      return;
-    }
-    if (["s", "down", "j"].includes(key)) {
-      k.camPos(currentPos.x, currentPos.y + CAMERA_VELOCITY);
-      return;
+      k.camPos(
+        currentPos.x,
+        Math.max(currentPos.y - CAMERA_ACCELERATION, minY)
+      );
+    } else if (["s", "down", "j"].includes(key)) {
+      k.camPos(
+        currentPos.x,
+        Math.min(currentPos.y + CAMERA_ACCELERATION, maxY)
+      );
     }
   }
 
