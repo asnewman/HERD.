@@ -3,8 +3,8 @@ import { k } from "./kaboom";
 import { createMenu, drawBg, initCamera } from "./lib";
 import { createExplosion } from "./objects/explosion";
 import { SheepState, createSheep } from "./sheep";
-import { fillMap, findStart } from "./map";
-import { MAIN_MENU, hideUI, showUI } from "./menus";
+import { fillMap, findStart, forEachChar } from "./map";
+import { hideUI, showUI } from "./menus";
 
 export const TILE_SIZE = 48;
 
@@ -555,18 +555,18 @@ export function startGame() {
       "                                                      ",
       "                                                      ",
       "┌───────────┐                            ┌───────────┐",
+      "│    S      │                            │           │",
       "│           │                            │           │",
+      "│ S         │                            │           │",
       "│           │                            │           │",
-      "│           │                            │           │",
-      "│           │                            │           │",
-      "│           │                            │           │",
+      "│       S   │                            │           │",
       "│           xppppppppppppppppppppppppppppo           │",
+      "│  S        │                            │           │",
       "│           │                            │           │",
+      "│      S    │            D               │           │",
       "│           │                            │           │",
-      "│           │                            │           │",
-      "│           │                            │           │",
-      "│           │                            │           │",
-      "│           │                            │           │",
+      "│      S    │                            │           │",
+      "│      S    │                            │           │",
       "└───────────┘                            └───────────┘",
       "                                                      ",
       "                                                      ",
@@ -581,24 +581,54 @@ export function startGame() {
       tileWidth: TILE_SIZE,
       tileHeight: TILE_SIZE,
       tiles: {
-        "┌": () => [k.sprite(SPRITES.baseTopLeft), k.scale(mapScale), k.z(1)],
-        "│": () => [k.sprite(SPRITES.baseVertical), k.scale(mapScale), k.z(1)],
-        x: () => [k.sprite(SPRITES.baseVertical), k.scale(mapScale), k.z(1)],
+        "┌": () => [
+          k.sprite(SPRITES.baseTopLeft),
+          k.scale(mapScale),
+          k.area(),
+          k.body({ isStatic: true }),
+          k.z(1),
+        ],
+        "│": () => [
+          k.sprite(SPRITES.baseVertical),
+          k.scale(mapScale),
+          k.area(),
+          k.body({ isStatic: true }),
+          k.z(1),
+        ],
+        x: () => [
+          k.sprite(SPRITES.baseVertical),
+          k.scale(mapScale),
+          k.area(),
+          k.body(),
+          k.z(1),
+        ],
         o: () => [k.sprite(SPRITES.baseVertical), k.scale(mapScale), k.z(1)],
         "└": () => [
           k.sprite(SPRITES.baseBottomLeft),
           k.scale(mapScale),
+          k.area(),
+          k.body({ isStatic: true }),
           k.z(1),
         ],
-        "┐": () => [k.sprite(SPRITES.baseTopRight), k.scale(mapScale), k.z(1)],
+        "┐": () => [
+          k.sprite(SPRITES.baseTopRight),
+          k.scale(mapScale),
+          k.area(),
+          k.body({ isStatic: true }),
+          k.z(1),
+        ],
         "─": () => [
           k.sprite(SPRITES.baseHorizontal),
           k.scale(mapScale),
+          k.area(),
+          k.body({ isStatic: true }),
           k.z(1),
         ],
         "┘": () => [
           k.sprite(SPRITES.baseBottomRight),
           k.scale(mapScale),
+          k.area(),
+          k.body({ isStatic: true }),
           k.z(1),
         ],
         p: () => [
@@ -611,14 +641,21 @@ export function startGame() {
         // " ": () => [sprite(SPRITES.empty)],
       },
     });
-    // const start = findStart();
 
-    // let curr = start;
-
-    // if (curr === undefined) {
-    //   console.error("no start found");
-    //   return map;
-    // }
+    forEachChar(gameState.map, "S", mapTileSize * mapScale, ([x, y]) => {
+      createSheep(gameState, {
+        name: "shep-" + new Date().getTime().toString() + Math.random() * 100,
+        type: "standard",
+        initialState: SheepState.grazing,
+        pos: [x, y],
+      });
+    });
+    forEachChar(gameState.map, "D", mapTileSize * mapScale, ([x, y]) => {
+      createDog(gameState, {
+        name: "doggo-" + new Date().getTime().toString() + Math.random() * 100,
+        pos: [x, y],
+      });
+    });
   });
 
   k.go(SCENES.mainMenu);

@@ -71,6 +71,21 @@ function findStart(): [number, number] | undefined {
   return undefined;
 }
 
+export function forEachChar(
+  map: string[],
+  char: string,
+  tileSize: number,
+  cb: (pos: [number, number]) => void
+) {
+  for (let y = 0; y < map.length; y++) {
+    for (let x = 0; x < map[y].length; x++) {
+      if (map[y][x] === char) {
+        cb([x * tileSize, y * tileSize]);
+      }
+    }
+  }
+}
+
 function fillMap(): string[] {
   map = [
     "┌─┐                       ",
