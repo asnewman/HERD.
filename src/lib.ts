@@ -360,12 +360,12 @@ export function createParticleEmitter(options: IParticleEmitterOptions) {
   };
 }
 
-const CAMERA_ACCELERATION = 0.8;
-const CAMERA_DECELERATION = 0.4;
+const CAMERA_ACCELERATION = 1000;
+const CAMERA_DECELERATION = 750;
 
 const cameraMaxVelocity = {
-  x: 15,
-  y: 15,
+  x: 10000,
+  y: 10000,
 };
 let cameraVelocity = {
   x: 0,
@@ -385,41 +385,43 @@ export function initCamera(levelSize: Vec2 = k.vec2(k.width(), k.height())) {
       down: keysPressed.has("s") || keysPressed.has("down"),
     };
 
+    const dt = k.dt();
+
     // Apply acceleration to x and y velocities
     if (movement.left) {
       cameraVelocity.x = Math.max(
-        cameraVelocity.x - CAMERA_ACCELERATION,
+        cameraVelocity.x - CAMERA_ACCELERATION * dt,
         -cameraMaxVelocity.x
       );
     } else if (movement.right) {
       cameraVelocity.x = Math.min(
-        cameraVelocity.x + CAMERA_ACCELERATION,
+        cameraVelocity.x + CAMERA_ACCELERATION * dt,
         cameraMaxVelocity.x
       );
     }
     // Decelerate x if no movement keys are pressed for left/right
     else if (cameraVelocity.x !== 0) {
       const sign = Math.sign(cameraVelocity.x);
-      cameraVelocity.x -= CAMERA_DECELERATION * sign;
+      cameraVelocity.x -= CAMERA_DECELERATION * sign * dt;
       if (Math.abs(cameraVelocity.x) < CAMERA_DECELERATION) {
         cameraVelocity.x = 0;
       }
     }
     if (movement.up) {
       cameraVelocity.y = Math.max(
-        cameraVelocity.y - CAMERA_ACCELERATION,
+        cameraVelocity.y - CAMERA_ACCELERATION * dt,
         -cameraMaxVelocity.y
       );
     } else if (movement.down) {
       cameraVelocity.y = Math.min(
-        cameraVelocity.y + CAMERA_ACCELERATION,
+        cameraVelocity.y + CAMERA_ACCELERATION * dt,
         cameraMaxVelocity.y
       );
     }
     // Decelerate y if no movement keys are pressed for up/down
     else if (cameraVelocity.y !== 0) {
       const sign = Math.sign(cameraVelocity.y);
-      cameraVelocity.y -= CAMERA_DECELERATION * sign;
+      cameraVelocity.y -= CAMERA_DECELERATION * sign * dt;
       if (Math.abs(cameraVelocity.y) < CAMERA_DECELERATION) {
         cameraVelocity.y = 0;
       }
@@ -453,8 +455,8 @@ export function initCamera(levelSize: Vec2 = k.vec2(k.width(), k.height())) {
 
     // apply velocity to camera position, constraining to level boundaries
     k.camPos(
-      Math.max(Math.min(currentPos.x + cameraVelocity.x, maxX), minX),
-      Math.max(Math.min(currentPos.y + cameraVelocity.y, maxY), minY)
+      Math.max(Math.min(currentPos.x + cameraVelocity.x * dt, maxX), minX),
+      Math.max(Math.min(currentPos.y + cameraVelocity.y * dt, maxY), minY)
     );
   });
 }

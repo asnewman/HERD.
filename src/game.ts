@@ -571,8 +571,8 @@ export function startGame() {
       "                                                      ",
       "                                                      ",
     ];
-    const mapWidth = gameState.map[0].length * 48;
-    const mapHeight = gameState.map.length * 48;
+    const mapWidth = gameState.map[0].length * mapTileSize * mapScale;
+    const mapHeight = gameState.map.length * mapTileSize * mapScale;
     const levelSize = k.vec2(mapWidth, mapHeight);
     drawBg(levelSize);
     initCamera(levelSize);
