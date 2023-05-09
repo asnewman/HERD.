@@ -128,4 +128,72 @@ function fillMap(): string[] {
   return map;
 }
 
-export { fillMap, findStart };
+class MapTraverser {
+  private visited = new Set<[number, number]>();
+  private validCharacters = ["p", "o"];
+  private moves: ("left" | "right" | "down")[] = [];
+
+  constructor(private map: string[]) {
+    this.map = map;
+  }
+
+  private isValidTraverseMove(x: number, y: number) {
+    return (
+      this.validCharacters.includes(this.map[y][x]) && !this.visited.has([x, y])
+    );
+  }
+
+  private traverseMap(currNode: [number, number]): [number, number][] {
+    if (this.map[currNode[Y]][currNode[X]] === "o") {
+      return [currNode];
+    }
+
+    // right
+    if (this.isValidTraverseMove(currNode[X] + 1, currNode[Y])) {
+      this.visited.add([currNode[X] + 1, currNode[Y]]);
+      this.moves.push("right");
+      return [currNode, ...this.traverseMap([currNode[X] + 1, currNode[Y]])];
+    }
+
+    // left
+    if (this.isValidTraverseMove(currNode[X] - 1, currNode[Y])) {
+      this.visited.add([currNode[X] - 1, currNode[Y]]);
+      this.moves.push("left");
+      return [currNode, ...this.traverseMap([currNode[X] - 1, currNode[Y]])];
+    }
+
+    // down
+    this.visited.add([currNode[X], currNode[Y] + 1]);
+    this.moves.push("down");
+    return [currNode, ...this.traverseMap([currNode[X], currNode[Y] + 1])];
+  }
+
+  private findStart(): [number, number] | undefined {
+    for (let y = 0; y < map.length; y++) {
+      for (let x = 0; x < map[y].length; x++) {
+        if (map[y][x] === "x") {
+          return [x, y];
+        }
+      }
+    }
+    return undefined;
+  }
+
+  public traverse() {
+    const start = this.findStart();
+    if (start === undefined) {
+      throw new Error("no start found");
+    }
+    this.traverseMap(start);
+    let prev = "right";
+    this.moves = this.moves.filter((move) => {
+      if (move === prev) {
+        return false;
+      }
+      prev = move;
+      return true;
+    });
+  }
+}
+
+export { fillMap, findStart, MapTraverser };
