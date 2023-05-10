@@ -10,6 +10,7 @@ import { k } from "./kaboom";
 import { IGameState, SHADERS, SPRITES, TILE_SIZE } from "./game";
 import { health } from "./components/health";
 import { createExplosion } from "./objects/explosion";
+import { MapTraverser } from "./map";
 
 export enum SheepState {
   grazing = "grazing",
@@ -20,7 +21,7 @@ export enum SheepState {
 export type SheepType = "standard" | "bomber" | "shielder" | "commando";
 
 const SHEEP_ANIM_SPEED = 0.6;
-const SHEEP_GRAZE_VELOCITY = 3000;
+const SHEEP_GRAZE_VELOCITY = 6000;
 
 interface ICreateSheepOptions {
   name: string;
@@ -124,6 +125,34 @@ export function createSheep(
       add: function (
         this: GameObj<StateComp | SpriteComp | AreaComp | BodyComp | PosComp>
       ) {
+        const mapTraverser = new MapTraverser(gameState.map);
+        mapTraverser.traverse();
+
+        function changePathingDirection(): [number, number] {
+          switch (mapTraverser.moves[moveIdx++]) {
+            case "left": {
+              states.lastDirection = states.direction;
+              states.direction = "left";
+              return [-SHEEP_GRAZE_VELOCITY * k.dt(), 0];
+            }
+            case "right": {
+              states.lastDirection = states.direction;
+              states.direction = "right";
+              return [SHEEP_GRAZE_VELOCITY * k.dt(), 0];
+            }
+            case "down": {
+              states.lastDirection = states.direction;
+              states.direction = "down";
+              return [0, SHEEP_GRAZE_VELOCITY * k.dt()];
+            }
+            default: {
+              states.lastDirection = states.direction;
+              states.direction = "idle";
+              return [0, 0];
+            }
+          }
+        }
+
         setType.call(this, type);
 
         this.onStateEnter(SheepState.grazing, async () => {
@@ -216,6 +245,8 @@ export function createSheep(
           this.move(...moveValues);
         });
 
+        let moveIdx = 0;
+
         this.onStateEnter(SheepState.pathing, () => {
           this.play("graze");
           this.flipX = states.direction === "left";
@@ -227,38 +258,20 @@ export function createSheep(
 
           switch (states.direction) {
             case "left": {
-              const tileX = Math.ceil((this.pos.x - 1) / TILE_SIZE);
+              const tileX = Math.ceil((this.pos.x - 5) / TILE_SIZE);
               const tileY = Math.ceil(this.pos.y / TILE_SIZE);
-              if (
-                gameState.map[tileY][tileX] !== "p" &&
-                states.lastDirection === "down"
-              ) {
-                states.direction = "right";
-                states.lastDirection = "left";
-              } else if (gameState.map[tileY][tileX] !== "p") {
-                states.direction = "down";
-                states.lastDirection = "left";
+              if (gameState.map[tileY][tileX] !== "p") {
+                moveValues = changePathingDirection();
               } else {
                 moveValues = [-SHEEP_GRAZE_VELOCITY * k.dt(), 0];
               }
               break;
             }
             case "right": {
-              const tileX = Math.ceil((this.pos.x + 1) / TILE_SIZE);
+              const tileX = Math.ceil((this.pos.x + 5) / TILE_SIZE);
               const tileY = Math.ceil(this.pos.y / TILE_SIZE);
-              if (
-                gameState.map[tileY][tileX] !== "p" &&
-                states.lastDirection === "down"
-              ) {
-                states.direction = "left";
-                states.lastDirection = "right";
-              } else if (
-                !gameState.map[tileY][tileX] ||
-                (gameState.map[tileY][tileX] !== "p" &&
-                  gameState.map[tileY][tileX] !== "x")
-              ) {
-                states.direction = "down";
-                states.lastDirection = "right";
+              if (gameState.map[tileY][tileX] !== "p") {
+                moveValues = changePathingDirection();
               } else {
                 moveValues = [SHEEP_GRAZE_VELOCITY * k.dt(), 0];
               }
@@ -266,16 +279,16 @@ export function createSheep(
             }
             case "down": {
               const tileX = Math.ceil(this.pos.x / TILE_SIZE);
-              const tileY = Math.ceil((this.pos.y + 1) / TILE_SIZE);
+              const tileY = Math.ceil((this.pos.y + 5) / TILE_SIZE);
               if (gameState.map[tileY][tileX] !== "p") {
-                states.direction = "right";
-                if (states.lastDirection !== "left") {
-                  states.direction = "left";
-                }
-                states.lastDirection = "down";
+                moveValues = changePathingDirection();
               } else {
                 moveValues = [0, SHEEP_GRAZE_VELOCITY * k.dt()];
               }
+              break;
+            }
+            default: {
+              this.stop();
               break;
             }
           }

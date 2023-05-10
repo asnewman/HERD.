@@ -129,9 +129,9 @@ function fillMap(): string[] {
 }
 
 class MapTraverser {
-  private visited = new Set<[number, number]>();
+  private visited = new Set<string>();
   private validCharacters = ["p", "o"];
-  private moves: ("left" | "right" | "down")[] = [];
+  public moves: ("left" | "right" | "down")[] = [];
 
   constructor(private map: string[]) {
     this.map = map;
@@ -139,7 +139,8 @@ class MapTraverser {
 
   private isValidTraverseMove(x: number, y: number) {
     return (
-      this.validCharacters.includes(this.map[y][x]) && !this.visited.has([x, y])
+      this.validCharacters.includes(this.map[y][x]) &&
+      !this.visited.has(JSON.stringify([x, y]))
     );
   }
 
@@ -150,20 +151,20 @@ class MapTraverser {
 
     // right
     if (this.isValidTraverseMove(currNode[X] + 1, currNode[Y])) {
-      this.visited.add([currNode[X] + 1, currNode[Y]]);
+      this.visited.add(JSON.stringify([currNode[X] + 1, currNode[Y]]));
       this.moves.push("right");
       return [currNode, ...this.traverseMap([currNode[X] + 1, currNode[Y]])];
     }
 
     // left
     if (this.isValidTraverseMove(currNode[X] - 1, currNode[Y])) {
-      this.visited.add([currNode[X] - 1, currNode[Y]]);
+      this.visited.add(JSON.stringify([currNode[X] - 1, currNode[Y]]));
       this.moves.push("left");
       return [currNode, ...this.traverseMap([currNode[X] - 1, currNode[Y]])];
     }
 
     // down
-    this.visited.add([currNode[X], currNode[Y] + 1]);
+    this.visited.add(JSON.stringify([currNode[X], currNode[Y] + 1]));
     this.moves.push("down");
     return [currNode, ...this.traverseMap([currNode[X], currNode[Y] + 1])];
   }
