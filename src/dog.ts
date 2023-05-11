@@ -313,7 +313,7 @@ export function createDog(gameState: IGameState, options: ICreateDogOptions) {
       Object.values(DogState)
     ),
     k.area(),
-    k.body(),
+    // k.body(),
     dogState(),
     k.shader(SHADERS.damaged, {
       u_flash_intensity: 0,

@@ -506,7 +506,8 @@ export function startGame() {
   k.scene(SCENES.mainMenu, () => {
     const btn = "px-4 py-1 text-5xl text-black-600 font-semibold bg-white";
     showUI({
-      class: "w-6/12 h-full flex flex-col justify-center items-center",
+      class:
+        "w-6/12 h-full flex flex-col justify-center items-center top-0 left-0",
       template: `
         <div>
           <h1 class="text-9xl font-bold mb-2">HERD</h2>
@@ -638,7 +639,6 @@ export function startGame() {
           k.area(),
           "path",
         ],
-        // " ": () => [sprite(SPRITES.empty)],
       },
     });
 
@@ -647,6 +647,7 @@ export function startGame() {
         name: "shep-" + new Date().getTime().toString() + Math.random() * 100,
         type: "standard",
         initialState: SheepState.grazing,
+        selectable: true,
         pos: [x, y],
       });
     });
@@ -656,7 +657,63 @@ export function startGame() {
         pos: [x, y],
       });
     });
+
+    const onSheepTypeClick =
+      (type: "bomber" | "shielder" | "commando") => () => {
+        for (const sheepName of gameState.sheepSelected) {
+          const sheep = gameState.sheep[sheepName];
+          const flipXBefore = sheep.flipX;
+          const frameBefore = sheep.frame;
+          if (!sheep) continue;
+          sheep.setType(type);
+          sheep.flipX = flipXBefore;
+          sheep.frame = frameBefore;
+          sheep.play("graze");
+          sheep.toggleSelected();
+          gameState.sheepSelected.delete(sheepName);
+        }
+
+        k.canvas.focus();
+      };
+
+    const onSheepRelease = () => {
+      for (const sheepName of gameState.sheepSelected) {
+        const sheep = gameState.sheep[sheepName];
+        if (!sheep) continue;
+        sheep.startPathing();
+        sheep.toggleSelected();
+      }
+
+      k.canvas.focus();
+    };
+
+    const gameUIId = "game-ui";
+
+    const buttonRelease = "p-3 bg-red-600 text-white rounded";
+    const buttonSheepType = "p-3 bg-slate-600 text-white rounded";
+    showUI(
+      {
+        class: "absolute right-0 top-0 w-2/12",
+        template: `
+          <div>
+            <div class="flex flex-col space-y-5 py-5 mr-5">
+              <button id="release" class="${buttonRelease}">Release</button>
+              <button id="bomber" class="${buttonSheepType}">Bomber</button>
+              <button id="shielder" class="${buttonSheepType}">Shielder</button>
+              <button id="commando" class="${buttonSheepType}">Commando</button>
+            </div>
+          </div>
+        `,
+        onClick: {
+          release: onSheepRelease,
+          bomber: onSheepTypeClick("bomber"),
+          shielder: onSheepTypeClick("shielder"),
+          commando: onSheepTypeClick("commando"),
+        },
+      },
+      gameUIId
+    );
   });
 
-  k.go(SCENES.mainMenu);
+  k.go(SCENES.menu);
 }

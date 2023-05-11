@@ -10,7 +10,7 @@ import { k } from "./kaboom";
 import { IGameState, SHADERS, SPRITES, TILE_SIZE } from "./game";
 import { health } from "./components/health";
 import { createExplosion } from "./objects/explosion";
-import { MapTraverser } from "./map";
+import Map from "./map";
 
 export enum SheepState {
   grazing = "grazing",
@@ -109,6 +109,8 @@ export function createSheep(
       directionTimeLimit: 0,
     };
 
+    let mapTraverser = new Map.MapTraverser(gameState.map);
+
     function setType(this: GameObj, type: SheepType) {
       states.type = type;
 
@@ -125,9 +127,6 @@ export function createSheep(
       add: function (
         this: GameObj<StateComp | SpriteComp | AreaComp | BodyComp | PosComp>
       ) {
-        const mapTraverser = new MapTraverser(gameState.map);
-        mapTraverser.traverse();
-
         function changePathingDirection(): [number, number] {
           switch (mapTraverser.moves[moveIdx++]) {
             case "left": {
@@ -248,6 +247,7 @@ export function createSheep(
         let moveIdx = 0;
 
         this.onStateEnter(SheepState.pathing, () => {
+          mapTraverser.traverse();
           this.play("graze");
           this.flipX = states.direction === "left";
         });
@@ -292,6 +292,7 @@ export function createSheep(
               break;
             }
           }
+
           if (!(moveValues[0] === -1 && moveValues[1] === -1)) {
             this.move(...moveValues);
           }
@@ -302,6 +303,18 @@ export function createSheep(
       },
       getType(this: GameObj) {
         return states.type;
+      },
+      startPathing(this: GameObj<PosComp | StateComp>) {
+        mapTraverser.updateMap(gameState.map);
+
+        const start = Map.findStart(gameState.map);
+        if (!start) {
+          throw new Error("Sheep cannot start pathing without a start tile");
+        }
+
+        const [x, y] = [start[0] * TILE_SIZE, start[1] * TILE_SIZE];
+        this.pos = k.vec2(x + TILE_SIZE, y);
+        this.enterState(SheepState.pathing);
       },
       setType,
     };

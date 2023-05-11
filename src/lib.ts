@@ -360,8 +360,8 @@ export function createParticleEmitter(options: IParticleEmitterOptions) {
   };
 }
 
-const CAMERA_ACCELERATION = 1000;
-const CAMERA_DECELERATION = 750;
+const CAMERA_ACCELERATION = 3000;
+const CAMERA_DECELERATION = 2250;
 
 const cameraMaxVelocity = {
   x: 10000,
@@ -389,14 +389,20 @@ export function initCamera(levelSize: Vec2 = k.vec2(k.width(), k.height())) {
 
     // Apply acceleration to x and y velocities
     if (movement.left) {
-      cameraVelocity.x = Math.max(
-        cameraVelocity.x - CAMERA_ACCELERATION * dt,
-        -cameraMaxVelocity.x
+      cameraVelocity.x = Math.min(
+        0,
+        Math.max(
+          cameraVelocity.x - CAMERA_ACCELERATION * dt,
+          -cameraMaxVelocity.x
+        )
       );
     } else if (movement.right) {
-      cameraVelocity.x = Math.min(
-        cameraVelocity.x + CAMERA_ACCELERATION * dt,
-        cameraMaxVelocity.x
+      cameraVelocity.x = Math.max(
+        0,
+        Math.min(
+          cameraVelocity.x + CAMERA_ACCELERATION * dt,
+          cameraMaxVelocity.x
+        )
       );
     }
     // Decelerate x if no movement keys are pressed for left/right
@@ -408,14 +414,20 @@ export function initCamera(levelSize: Vec2 = k.vec2(k.width(), k.height())) {
       }
     }
     if (movement.up) {
-      cameraVelocity.y = Math.max(
-        cameraVelocity.y - CAMERA_ACCELERATION * dt,
-        -cameraMaxVelocity.y
+      cameraVelocity.y = Math.min(
+        0,
+        Math.max(
+          cameraVelocity.y - CAMERA_ACCELERATION * dt,
+          -cameraMaxVelocity.y
+        )
       );
     } else if (movement.down) {
-      cameraVelocity.y = Math.min(
-        cameraVelocity.y + CAMERA_ACCELERATION * dt,
-        cameraMaxVelocity.y
+      cameraVelocity.y = Math.max(
+        0,
+        Math.min(
+          cameraVelocity.y + CAMERA_ACCELERATION * dt,
+          cameraMaxVelocity.y
+        )
       );
     }
     // Decelerate y if no movement keys are pressed for up/down
