@@ -314,6 +314,7 @@ export function createSheep(
 
         const [x, y] = [start[0] * TILE_SIZE, start[1] * TILE_SIZE];
         this.pos = k.vec2(x + TILE_SIZE, y);
+        states.direction = "right";
         this.enterState(SheepState.pathing);
       },
       setType,
