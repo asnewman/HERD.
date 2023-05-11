@@ -30,7 +30,7 @@ interface ICreateSheepOptions {
   initialState?: SheepState;
   health?: boolean;
   onDamage?: () => void;
-  onDestroy?: () => void;
+  onDeath?: () => void;
   selectable?: boolean;
 }
 
@@ -327,7 +327,7 @@ export function createSheep(
   const sheep = k.add([
     "sheep",
     { name: options.name },
-    health({ onDamage }),
+    health({ onDamage, onDeath: options.onDeath }),
     sheepTag,
     k.pos(...options.pos),
     k.sprite(SPRITES.sheep, { animSpeed: SHEEP_ANIM_SPEED }),

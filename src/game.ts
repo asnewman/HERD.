@@ -373,7 +373,7 @@ export function startGame() {
       pos: startPosition,
       initialState: SheepState.pathing,
       onDamage: () => {},
-      onDestroy: () => {
+      onDeath: () => {
         sheep.destroy();
       },
     });
@@ -643,12 +643,13 @@ export function startGame() {
     });
 
     forEachChar(gameState.map, "S", mapTileSize * mapScale, ([x, y]) => {
-      createSheep(gameState, {
+      const sheep = createSheep(gameState, {
         name: "shep-" + new Date().getTime().toString() + Math.random() * 100,
         type: "standard",
         initialState: SheepState.grazing,
         selectable: true,
         pos: [x, y],
+        onDeath: onSheepDeath,
       });
     });
     forEachChar(gameState.map, "D", mapTileSize * mapScale, ([x, y]) => {
@@ -658,40 +659,13 @@ export function startGame() {
       });
     });
 
-    const onSheepTypeClick =
-      (type: "bomber" | "shielder" | "commando") => () => {
-        for (const sheepName of gameState.sheepSelected) {
-          const sheep = gameState.sheep[sheepName];
-          const flipXBefore = sheep.flipX;
-          const frameBefore = sheep.frame;
-          if (!sheep) continue;
-          sheep.setType(type);
-          sheep.flipX = flipXBefore;
-          sheep.frame = frameBefore;
-          sheep.play("graze");
-          sheep.toggleSelected();
-          gameState.sheepSelected.delete(sheepName);
-        }
+    const buttonRelease =
+      "p-3 bg-red-600 hover:bg-red-700 text-white rounded transition-colors";
+    const buttonSheepType =
+      "p-3 bg-slate-600 hover:bg-slate-700 text-white rounded transition-colors";
 
-        k.canvas.focus();
-      };
-
-    const onSheepRelease = () => {
-      for (const sheepName of gameState.sheepSelected) {
-        const sheep = gameState.sheep[sheepName];
-        if (!sheep) continue;
-        sheep.startPathing();
-        sheep.toggleSelected();
-      }
-
-      k.canvas.focus();
-    };
-
-    const gameUIId = "game-ui";
-
-    const buttonRelease = "p-3 bg-red-600 text-white rounded";
-    const buttonSheepType = "p-3 bg-slate-600 text-white rounded";
-    showUI(
+    const selectionUIId = "game-ui";
+    const _selectionUI = showUI(
       {
         class: "absolute right-0 top-0 w-2/12",
         template: `
@@ -711,9 +685,77 @@ export function startGame() {
           commando: onSheepTypeClick("commando"),
         },
       },
-      gameUIId
+      selectionUIId
     );
+
+    function onSheepTypeClick(type: "bomber" | "shielder" | "commando") {
+      return () => {
+        for (const sheepName of gameState.sheepSelected) {
+          const sheep = gameState.sheep[sheepName];
+          const flipXBefore = sheep.flipX;
+          const frameBefore = sheep.frame;
+          if (!sheep) continue;
+          sheep.setType(type);
+          sheep.flipX = flipXBefore;
+          sheep.frame = frameBefore;
+          sheep.play("graze");
+          sheep.toggleSelected();
+          gameState.sheepSelected.delete(sheepName);
+        }
+
+        k.canvas.focus();
+      };
+    }
+
+    function onSheepRelease() {
+      for (const sheepName of gameState.sheepSelected) {
+        const sheep = gameState.sheep[sheepName];
+        if (!sheep) continue;
+        sheep.startPathing();
+        sheep.toggleSelected();
+      }
+
+      k.canvas.focus();
+    }
+
+    const sheepCountUIID = "sheep-count-id";
+    const sheepCountUI = showUI(
+      {
+        class: "absolute bottom-0 left-0 w-screen py-6",
+        template: `
+          <div class="flex w-full justify-center">
+            <span class="text-center text-white text-xl bg-slate-500 py-2 px-4 rounded">Tha Sheep ${"->"} <span id="sheep-alive">0</span> / <span id="sheep-total">0</span></span>
+          </div>
+        `,
+        onClick: {
+          release: onSheepRelease,
+          bomber: onSheepTypeClick("bomber"),
+          shielder: onSheepTypeClick("shielder"),
+          commando: onSheepTypeClick("commando"),
+        },
+      },
+      sheepCountUIID
+    );
+
+    const sheepTotal = Object.keys(gameState.sheep).length;
+    const sheepAlive = Object.values(gameState.sheep).filter(
+      (sheep) => sheep.isAlive
+    ).length;
+
+    // TODO: this doesn't work
+    sheepCountUI.updateNodeHtml("sheep-alive", sheepAlive.toString());
+    sheepCountUI.updateNodeHtml("sheep-total", sheepTotal.toString());
+
+    function onSheepDeath() {
+      const sheepTotal = Object.keys(gameState.sheep).length;
+      const sheepAlive = Object.values(gameState.sheep).filter(
+        (sheep) => sheep.isAlive
+      ).length;
+
+      sheepCountUI.updateNodeHtml("sheep-alive", sheepAlive.toString());
+      sheepCountUI.updateNodeHtml("sheep-total", sheepTotal.toString());
+    }
   });
 
-  k.go(SCENES.menu);
+  k.go(SCENES.levelOne);
 }
