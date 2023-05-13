@@ -649,7 +649,7 @@ export function startGame() {
         initialState: SheepState.grazing,
         selectable: true,
         pos: [x, y],
-        onDeath: onSheepDeath,
+        onDeath: () => onSheepDeath(sheep),
       });
     });
     forEachChar(gameState.map, "D", mapTileSize * mapScale, ([x, y]) => {
@@ -746,7 +746,9 @@ export function startGame() {
     sheepCountUI.updateNodeHtml("sheep-alive", sheepAlive.toString());
     sheepCountUI.updateNodeHtml("sheep-total", sheepTotal.toString());
 
-    function onSheepDeath() {
+    function onSheepDeath(sheep: any) {
+      sheep.destroy();
+
       const sheepTotal = Object.keys(gameState.sheep).length;
       const sheepAlive = Object.values(gameState.sheep).filter(
         (sheep) => sheep.isAlive
