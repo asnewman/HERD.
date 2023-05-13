@@ -1,17 +1,21 @@
 interface IUI {
+  id: string;
   class?: string;
   template: string;
   onClick: Record<string, (e: MouseEvent) => void>;
+  visible?: boolean;
 }
 
-export function showUI(ui: IUI, id = "menu") {
+export function ui(opts: IUI) {
+  const visible = opts.visible ?? true;
   const el = document.createElement("div");
-  el.className = "ui" + (ui.class ? " " + ui.class : "");
-  el.id = id;
-  el.innerHTML = ui.template;
+  el.className = "ui" + (opts.class ? " " + opts.class : "");
+  el.id = opts.id;
+  el.innerHTML = opts.template;
+  if (!visible) el.style.display = "none";
   document.body.appendChild(el);
 
-  Object.entries(ui.onClick).forEach(([idSelector, handler]) => {
+  Object.entries(opts.onClick).forEach(([idSelector, handler]) => {
     const b = document.querySelector(`#${idSelector}`) as HTMLButtonElement;
     b?.addEventListener("click", handler);
   });
@@ -21,9 +25,9 @@ export function showUI(ui: IUI, id = "menu") {
   function populateChildIdMap(parent: HTMLElement = el) {
     parent.childNodes.forEach((node) => {
       if (node.nodeType !== Node.ELEMENT_NODE) return;
+
       let n = node as HTMLElement;
-      if (!n.id) return;
-      childIdMap.set(n.id, n);
+      if (n.id) childIdMap.set(n.id, n);
       if (node.childNodes.length > 0) {
         populateChildIdMap(n);
       }
@@ -31,14 +35,24 @@ export function showUI(ui: IUI, id = "menu") {
   }
   populateChildIdMap();
 
-  function updateNodeHtml(id: string, html: string) {
+  function updateNode(id: string, cb: (element: HTMLElement) => void) {
     const node = childIdMap.get(id);
     if (!node) return;
-    node.innerHTML = html;
+    cb(node);
+  }
+
+  function show() {
+    el.style.display = "block";
+  }
+
+  function hide() {
+    el.style.display = "none";
   }
 
   return {
-    updateNodeHtml,
+    updateNode,
+    show,
+    hide,
   };
 }
 

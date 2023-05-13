@@ -11,6 +11,7 @@ import { IGameState, SHADERS, SPRITES, TILE_SIZE } from "./game";
 import { health } from "./components/health";
 import { createExplosion } from "./objects/explosion";
 import Map from "./map";
+import { selectable } from "./components/selectable";
 
 export enum SheepState {
   grazing = "grazing",
@@ -25,6 +26,8 @@ const SHEEP_GRAZE_VELOCITY = 6000;
 
 interface ICreateSheepOptions {
   name: string;
+  age: number;
+  fact?: string;
   type?: SheepType;
   pos: [number, number];
   initialState?: SheepState;
@@ -32,6 +35,7 @@ interface ICreateSheepOptions {
   onDamage?: () => void;
   onDeath?: () => void;
   selectable?: boolean;
+  onClick?: (sheep: any) => void;
 }
 
 export function createSheep(
@@ -48,39 +52,6 @@ export function createSheep(
 
   if (!options.pos) {
     throw new Error("Sheep must have a position");
-  }
-
-  function selectable() {
-    let isSelected = false;
-    return {
-      id: "selectable",
-      require: ["area"],
-      draw() {
-        if (!isSelected) return;
-        k.drawRect({
-          width: 32,
-          height: 17,
-          pos: k.vec2(0, 0),
-          fill: false,
-          outline: { color: k.RED, width: 1 },
-        });
-      },
-      inspect() {
-        return String(isSelected);
-      },
-      setSelected(value: boolean) {
-        isSelected = value;
-      },
-      toggleSelected() {
-        const wasAlreadySelected = gameState.sheepSelected.has(sheep.name);
-
-        wasAlreadySelected
-          ? gameState.sheepSelected.delete(sheep.name)
-          : gameState.sheepSelected.add(sheep.name);
-
-        this.setSelected(!wasAlreadySelected);
-      },
-    };
   }
 
   function sheepState(type: SheepType = "standard") {
@@ -327,9 +298,9 @@ export function createSheep(
 
   const sheep = k.add([
     "sheep",
-    { name: options.name },
-    health({ onDamage, onDeath: options.onDeath }),
     sheepTag,
+    { name: options.name, age: options.age, fact: options.fact },
+    health({ onDamage, onDeath: options.onDeath }),
     k.pos(...options.pos),
     k.sprite(SPRITES.sheep, { animSpeed: SHEEP_ANIM_SPEED }),
     k.scale(3, 3),
@@ -338,7 +309,17 @@ export function createSheep(
       Object.values(SheepState)
     ),
     k.area(),
-    ...(options.selectable ? [selectable()] : []),
+    ...(options.selectable
+      ? [
+          selectable({
+            onStateChange: (selected) => {
+              selected
+                ? gameState.sheepSelected.add(sheep.name)
+                : gameState.sheepSelected.delete(sheep.name);
+            },
+          }),
+        ]
+      : []),
     k.body(),
     sheepState(options.type),
     k.shader(SHADERS.damaged, {
@@ -358,6 +339,10 @@ export function createSheep(
   });
 
   k.onClick(sheepTag, () => {
+    if (options.onClick) {
+      options.onClick(sheep);
+    }
+
     if (!sheep.setSelected) return;
 
     const wasAlreadySelected = gameState.sheepSelected.has(sheep.name);

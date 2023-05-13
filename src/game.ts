@@ -1,14 +1,17 @@
 import { createDog } from "./dog";
 import { k } from "./kaboom";
-import { createMenu, drawBg, initCamera } from "./lib";
+import { createMenu, drawBg, getFact, getName, initCamera } from "./lib";
 import { createExplosion } from "./objects/explosion";
 import { SheepState, createSheep } from "./sheep";
 import { fillMap, findStart, forEachChar } from "./map";
-import { hideUI, showUI } from "./menus";
+import { hideUI, ui } from "./menus";
+import icons from "./html/icons";
+import colors from "./html/colors";
 
 export const TILE_SIZE = 48;
 
 export interface IGameState {
+  sheepNames: Set<string>;
   /**
    * A map of sheep by sheepName -> Sheep object.
    * When a sheep is added to the game, it will be added to this map,
@@ -141,10 +144,29 @@ k.loadSprite(SPRITES.dogAttack, "sprites/dog/dog-attack.png", {
 export function startGame() {
   let gameState: IGameState = {
     sheep: {},
+    sheepNames: new Set(),
     sheepSelected: new Set(),
     enemies: {},
     map: [],
   };
+
+  function getSheepName() {
+    const name = getName(gameState.sheepNames);
+    gameState.sheepNames.add(name);
+    return name;
+  }
+
+  function getSheepAge() {
+    return Math.round(k.rand(3, 50));
+  }
+
+  function getSheepFact() {
+    return getFact();
+  }
+
+  function removeSheepName(name: string) {
+    gameState.sheepNames.delete(name);
+  }
 
   // load sprites
   k.loadSprite(SPRITES.empty, "sprites/empty.png");
@@ -370,6 +392,7 @@ export function startGame() {
 
     const sheep = createSheep(gameState, {
       name: `sheepish`,
+      age: 10,
       pos: startPosition,
       initialState: SheepState.pathing,
       onDamage: () => {},
@@ -392,6 +415,7 @@ export function startGame() {
         const yStart = y * segmentHeight;
         createSheep(gameState, {
           name: `sheep${x}${y}`,
+          age: 10,
           type: "standard",
           pos: [
             xStart + segmentWidth / 2 + getOffset(),
@@ -469,6 +493,7 @@ export function startGame() {
         const yStart = y * segmentHeight;
         createSheep(gameState, {
           name: `sheep${x}${y}`,
+          age: 10,
           type: k.choose(["standard", "bomber"]),
           pos: [
             xStart + segmentWidth / 2 + getOffset(),
@@ -478,6 +503,7 @@ export function startGame() {
 
         createSheep(gameState, {
           name: `2sheep${x}${y}`,
+          age: 10,
           type: k.choose(["standard", "bomber"]),
           pos: [
             xStart + segmentWidth / 2 + getOffset() * 10,
@@ -505,7 +531,8 @@ export function startGame() {
 
   k.scene(SCENES.mainMenu, () => {
     const btn = "px-4 py-1 text-5xl text-black-600 font-semibold bg-white";
-    showUI({
+    ui({
+      id: "menu",
       class:
         "w-6/12 h-full flex flex-col justify-center items-center top-0 left-0",
       template: `
@@ -532,6 +559,7 @@ export function startGame() {
         },
       },
     });
+
     k.add([
       k.sprite(SPRITES.grassTile, {
         width: k.width() / 2,
@@ -543,6 +571,7 @@ export function startGame() {
     ]);
     createSheep(gameState, {
       name: "shep",
+      age: 10,
       type: "standard",
       pos: [k.width() - k.width() / 4 - 100, k.height() / 2],
     });
@@ -644,14 +673,36 @@ export function startGame() {
 
     forEachChar(gameState.map, "S", mapTileSize * mapScale, ([x, y]) => {
       const sheep = createSheep(gameState, {
-        name: "shep-" + new Date().getTime().toString() + Math.random() * 100,
+        name: getSheepName(),
+        age: getSheepAge(),
+        fact: getSheepFact(),
         type: "standard",
         initialState: SheepState.grazing,
         selectable: true,
         pos: [x, y],
-        onDeath: () => onSheepDeath(sheep),
+        onDeath: () => {
+          removeSheepName(sheep.name);
+          sheep.destroy();
+        },
+        onClick: () => {
+          if (sheep.getIsSelected() && gameState.sheepSelected.size === 1) {
+            uiSelectedSheep.hide();
+            return;
+          }
+
+          updateSheepUI(sheep);
+          uiSelectedSheep.show();
+          for (const s of gameState.sheepSelected) {
+            const selectedSheep = gameState.sheep[s];
+            if (!selectedSheep) continue;
+            if (selectedSheep.name === sheep.name) continue;
+            selectedSheep.toggleSelected();
+            gameState.sheepSelected.delete(selectedSheep.name);
+          }
+        },
       });
     });
+
     forEachChar(gameState.map, "D", mapTileSize * mapScale, ([x, y]) => {
       createDog(gameState, {
         name: "doggo-" + new Date().getTime().toString() + Math.random() * 100,
@@ -664,29 +715,88 @@ export function startGame() {
     const buttonSheepType =
       "p-3 bg-slate-600 hover:bg-slate-700 text-white rounded transition-colors";
 
-    const selectionUIId = "game-ui";
-    const _selectionUI = showUI(
-      {
-        class: "absolute right-0 top-0 w-2/12",
-        template: `
-          <div>
-            <div class="flex flex-col space-y-5 py-5 mr-5">
-              <button id="release" class="${buttonRelease}">Release</button>
-              <button id="bomber" class="${buttonSheepType}">Bomber</button>
-              <button id="shielder" class="${buttonSheepType}">Shielder</button>
-              <button id="commando" class="${buttonSheepType}">Commando</button>
+    // const selectionUIId = "game-ui";
+    // const _selectionUI = showUI(
+    //   {
+    //     class: "absolute right-0 top-0 w-2/12",
+    //     template: `
+    //       <div>
+    //         <div class="flex flex-col space-y-5 py-5 mr-5">
+    //           <button id="release" class="${buttonRelease}">Release</button>
+    //           <button id="bomber" class="${buttonSheepType}">Bomber</button>
+    //           <button id="shielder" class="${buttonSheepType}">Shielder</button>
+    //           <button id="commando" class="${buttonSheepType}">Commando</button>
+    //         </div>
+    //       </div>
+    //     `,
+    //     onClick: {
+    //       release: onSheepRelease,
+    //       bomber: onSheepTypeClick("bomber"),
+    //       shielder: onSheepTypeClick("shielder"),
+    //       commando: onSheepTypeClick("commando"),
+    //     },
+    //   },
+    //   selectionUIId
+    // );
+
+    const uiSelectedSheep = ui({
+      id: "selected-sheep",
+      visible: false,
+      class: "absolute right-0 top-0 w-2/12 m-5",
+      template: `
+          <div class="border-2 border-slate-900 bg-slate-700 h-full p-5 rounded">
+            <h1 id="sheep-name" class="text-2xl text-sky-400 uppercase"></h1>
+            <p id="sheep-age" class="text-white"></p>
+            <p id="sheep-fact" class="text-white mt-5"></p>
+            <div class="flex justify-between items-center w-5/6 mx-auto mt-5">
+              <div>
+                ${icons.heart({
+                  fill: colors.red400,
+                  strokeColor: "black",
+                  strokeWidth: "2",
+                })}
+                <span id="sheep-health" class="text-red-400">100</span>
+              </div>
+              <div>
+                ${icons.bolt({
+                  fill: colors.yellow400,
+                  strokeColor: "black",
+                  strokeWidth: "2",
+                })}
+                <span id="sheep-speed" class="text-yellow-400">100</span>
+              </div>
+              <div>
+                ${icons.rocketLaunch({
+                  fill: colors.indigo400,
+                  strokeColor: "black",
+                  strokeWidth: "2",
+                })}
+                <span id="sheep-bravery" class="text-indigo-400">100</span>
+              </div>
             </div>
           </div>
         `,
-        onClick: {
-          release: onSheepRelease,
-          bomber: onSheepTypeClick("bomber"),
-          shielder: onSheepTypeClick("shielder"),
-          commando: onSheepTypeClick("commando"),
-        },
-      },
-      selectionUIId
-    );
+      onClick: {},
+    });
+
+    function updateSheepUI(sheep: any) {
+      uiSelectedSheep.updateNode(
+        "sheep-name",
+        (e) => (e.innerHTML = sheep.name)
+      );
+      uiSelectedSheep.updateNode(
+        "sheep-age",
+        (e) => (e.innerHTML = `${sheep.age} years old`)
+      );
+      uiSelectedSheep.updateNode(
+        "sheep-fact",
+        (e) => (e.innerHTML = sheep.fact)
+      );
+      uiSelectedSheep.updateNode(
+        "sheep-health",
+        (e) => (e.innerHTML = sheep.getHealth())
+      );
+    }
 
     function onSheepTypeClick(type: "bomber" | "shielder" | "commando") {
       return () => {
@@ -716,10 +826,6 @@ export function startGame() {
       }
 
       k.canvas.focus();
-    }
-
-    function onSheepDeath(sheep: any) {
-      sheep.destroy();
     }
   });
 

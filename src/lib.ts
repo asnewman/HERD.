@@ -16,6 +16,9 @@ import {
   Key,
 } from "kaboom";
 
+import names from "../misc/names.json";
+import facts from "../misc/facts.json";
+
 type IButtonTextComp = Comp & { setText: (text: string) => void };
 
 interface IButtonTextOptions {
@@ -199,6 +202,7 @@ export function createMenu(menu: IMenuOptions, buttons: IButton[]) {
   };
 
   return {
+    menu,
     show() {
       if (visible) return;
 
@@ -483,4 +487,16 @@ export function drawBg(levelSize: Vec2 = k.vec2(k.width(), k.height())) {
     k.pos(0, 0),
     k.z(0),
   ]);
+}
+
+export function getName(existingSet: Set<string> = new Set()) {
+  let name: string | null = null;
+  while (!(name && !existingSet.has(name))) {
+    name = k.choose(names);
+  }
+  return name;
+}
+
+export function getFact() {
+  return k.choose(facts);
 }

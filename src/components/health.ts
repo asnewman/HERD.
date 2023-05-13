@@ -18,6 +18,11 @@ export interface HealthComp extends Comp {
    * be used for other things like invincibility frames
    */
   getDamageTime: () => number;
+  /**
+   *
+   * @returns the amount of health remaining
+   */
+  getHealth: () => number;
 }
 
 /**
@@ -145,6 +150,9 @@ export function health(options?: HealthOptions): HealthComp {
         }
       }
 
+      return state.current;
+    },
+    getHealth() {
       return state.current;
     },
     getDamageTime() {
