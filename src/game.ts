@@ -672,6 +672,9 @@ export function startGame() {
     });
 
     forEachChar(gameState.map, "S", mapTileSize * mapScale, ([x, y]) => {
+      const maxHealth = Math.floor(k.rand(50, 200));
+      const startingHealth = Math.round(k.rand(40, maxHealth));
+
       const sheep = createSheep(gameState, {
         name: getSheepName(),
         age: getSheepAge(),
@@ -684,22 +687,11 @@ export function startGame() {
           removeSheepName(sheep.name);
           sheep.destroy();
         },
-        onClick: () => {
-          if (sheep.getIsSelected() && gameState.sheepSelected.size === 1) {
-            uiSelectedSheep.hide();
-            return;
-          }
-
-          updateSheepUI(sheep);
-          uiSelectedSheep.show();
-          for (const s of gameState.sheepSelected) {
-            const selectedSheep = gameState.sheep[s];
-            if (!selectedSheep) continue;
-            if (selectedSheep.name === sheep.name) continue;
-            selectedSheep.toggleSelected();
-            gameState.sheepSelected.delete(selectedSheep.name);
-          }
+        health: {
+          maxHealth,
+          startingHealth,
         },
+        onClick: () => onSheepClick(sheep),
       });
     });
 
@@ -709,6 +701,23 @@ export function startGame() {
         pos: [x, y],
       });
     });
+
+    function onSheepClick(sheep: any) {
+      if (sheep.getIsSelected() && gameState.sheepSelected.size === 1) {
+        uiSelectedSheep.hide();
+        return;
+      }
+
+      updateSheepUI(sheep);
+      uiSelectedSheep.show();
+      for (const s of gameState.sheepSelected) {
+        const selectedSheep = gameState.sheep[s];
+        if (!selectedSheep) continue;
+        if (selectedSheep.name === sheep.name) continue;
+        selectedSheep.toggleSelected();
+        gameState.sheepSelected.delete(selectedSheep.name);
+      }
+    }
 
     const buttonRelease =
       "p-3 bg-red-600 hover:bg-red-700 text-white rounded transition-colors";
@@ -744,35 +753,41 @@ export function startGame() {
       visible: false,
       class: "absolute right-0 top-0 w-2/12 m-5",
       template: `
-          <div class="border-2 border-slate-900 bg-slate-700 h-full p-5 rounded">
-            <h1 id="sheep-name" class="text-2xl text-sky-400 uppercase"></h1>
-            <p id="sheep-age" class="text-white"></p>
+          <div class="bg-slate-700 h-full p-5 rounded" id="selected-sheep-container">
+            <h1 id="sheep-name" class="text-3xl text-white font-black uppercase"></h1>
+            <p id="sheep-age" class="text-sm font-thin text-white"></p>
             <p id="sheep-fact" class="text-white mt-5"></p>
-            <div class="flex justify-between items-center w-5/6 mx-auto mt-5">
-              <div>
-                ${icons.heart({
-                  fill: colors.red400,
-                  strokeColor: "black",
-                  strokeWidth: "2",
-                })}
-                <span id="sheep-health" class="text-red-400">100</span>
-              </div>
-              <div>
+            <div class="group mt-5">
+                <label class="flex items-center">
+                  ${icons.heart({
+                    fill: colors.red400,
+                    strokeColor: "none",
+                    strokeWidth: "0",
+                  })} <span class="ml-1 text-white"><span class="font-bold">Health</span> <span class="text-sm font-light">(<span id="sheep-health-current">100</span> / <span id="sheep-health-max">100</span>)</span></span>
+                </label>
+                <div class="h-4 w-full bg-red-200" id="sheep-health-container">
+                  <div class="h-full bg-red-400"></div>
+                </div>
+            </div>
+            <div class="mt-2">
+                <label class="flex items-center">
                 ${icons.bolt({
                   fill: colors.yellow400,
-                  strokeColor: "black",
-                  strokeWidth: "2",
-                })}
-                <span id="sheep-speed" class="text-yellow-400">100</span>
-              </div>
-              <div>
+                  strokeColor: "none",
+                  strokeWidth: "0",
+                })} <span class="ml-1 text-white"><span class="font-bold">Speed</span> <span class="text-sm font-light">(<span id="sheep-speed">100</span>)</span></span>
+                </label>
+                <div class="h-4 w-full bg-yellow-400"></div>
+            </div>
+            <div class="mt-2">
+                <label class="flex items-center">
                 ${icons.rocketLaunch({
                   fill: colors.indigo400,
-                  strokeColor: "black",
-                  strokeWidth: "2",
-                })}
-                <span id="sheep-bravery" class="text-indigo-400">100</span>
-              </div>
+                  strokeColor: "none",
+                  strokeWidth: "0",
+                })} <span class="ml-1 text-white"><span class="font-bold">Bravery</span> <span class="text-sm font-light">(<span id="sheep-bravery">100</span>)</span></span>
+                </label>
+                <div class="h-4 w-full bg-indigo-400"></div>
             </div>
           </div>
         `,
@@ -780,6 +795,11 @@ export function startGame() {
     });
 
     function updateSheepUI(sheep: any) {
+      "sheep-bravery";
+      "sheep-speed";
+      "sheep-health-current";
+      "sheep-health-max";
+
       uiSelectedSheep.updateNode(
         "sheep-name",
         (e) => (e.innerHTML = sheep.name)
@@ -792,10 +812,31 @@ export function startGame() {
         "sheep-fact",
         (e) => (e.innerHTML = sheep.fact)
       );
+
+      const healthCurrent = sheep.getHealth();
+      const healthMax = sheep.getMaxHealth();
       uiSelectedSheep.updateNode(
-        "sheep-health",
-        (e) => (e.innerHTML = sheep.getHealth())
+        "sheep-health-current",
+        (e) => (e.innerHTML = healthCurrent)
       );
+      uiSelectedSheep.updateNode(
+        "sheep-health-max",
+        (e) => (e.innerHTML = healthMax)
+      );
+
+      const healthPercentage = healthCurrent / healthMax;
+      const healthContainer = uiSelectedSheep.element.querySelector(
+        "#sheep-health-container"
+      );
+      if (!healthContainer) throw new Error("Couldn't find container");
+
+      console.log("healthContainer.clientWidth", healthContainer.clientWidth);
+
+      const healthBar = healthContainer.querySelector("div")!;
+      if (!healthContainer) throw new Error("Couldn't find bar");
+
+      const healthWidth = healthContainer.clientWidth * healthPercentage;
+      healthBar.style.width = `${healthWidth}px`;
     }
 
     function onSheepTypeClick(type: "bomber" | "shielder" | "commando") {
@@ -827,6 +868,11 @@ export function startGame() {
 
       k.canvas.focus();
     }
+
+    // testing
+    // const s = Object.values(gameState.sheep)[0];
+    // onSheepClick(s);
+    // s.toggleSelected();
   });
 
   k.go(SCENES.levelOne);

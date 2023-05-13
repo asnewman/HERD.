@@ -23,6 +23,11 @@ export interface HealthComp extends Comp {
    * @returns the amount of health remaining
    */
   getHealth: () => number;
+  /**
+   *
+   * @returns the max amount of health
+   */
+  getMaxHealth: () => number;
 }
 
 /**
@@ -154,6 +159,9 @@ export function health(options?: HealthOptions): HealthComp {
     },
     getHealth() {
       return state.current;
+    },
+    getMaxHealth() {
+      return state.max;
     },
     getDamageTime() {
       return damageAnimCurrTime / DAMAGE_ANIM_DURATION_S;

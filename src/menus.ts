@@ -8,12 +8,15 @@ interface IUI {
 
 export function ui(opts: IUI) {
   const visible = opts.visible ?? true;
-  const el = document.createElement("div");
-  el.className = "ui" + (opts.class ? " " + opts.class : "");
-  el.id = opts.id;
-  el.innerHTML = opts.template;
-  if (!visible) el.style.display = "none";
-  document.body.appendChild(el);
+  const element = document.createElement("div");
+  element.className = "ui" + (opts.class ? " " + opts.class : "");
+  element.id = opts.id;
+  element.innerHTML = opts.template;
+  if (!visible) {
+    element.style.visibility = "hidden";
+    element.style.pointerEvents = "none";
+  }
+  document.body.appendChild(element);
 
   Object.entries(opts.onClick).forEach(([idSelector, handler]) => {
     const b = document.querySelector(`#${idSelector}`) as HTMLButtonElement;
@@ -22,7 +25,7 @@ export function ui(opts: IUI) {
 
   const childIdMap = new Map<string, HTMLElement>();
 
-  function populateChildIdMap(parent: HTMLElement = el) {
+  function populateChildIdMap(parent: HTMLElement = element) {
     parent.childNodes.forEach((node) => {
       if (node.nodeType !== Node.ELEMENT_NODE) return;
 
@@ -42,14 +45,17 @@ export function ui(opts: IUI) {
   }
 
   function show() {
-    el.style.display = "block";
+    element.style.visibility = "visible";
+    element.style.pointerEvents = "auto";
   }
 
   function hide() {
-    el.style.display = "none";
+    element.style.visibility = "hidden";
+    element.style.pointerEvents = "none";
   }
 
   return {
+    element,
     updateNode,
     show,
     hide,
