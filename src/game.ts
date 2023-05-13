@@ -718,44 +718,8 @@ export function startGame() {
       k.canvas.focus();
     }
 
-    const sheepCountUIID = "sheep-count-id";
-    const sheepCountUI = showUI(
-      {
-        class: "absolute bottom-0 left-0 w-screen py-6",
-        template: `
-          <div class="flex w-full justify-center">
-            <span class="text-center text-white text-xl bg-slate-500 py-2 px-4 rounded">Tha Sheep ${"->"} <span id="sheep-alive">0</span> / <span id="sheep-total">0</span></span>
-          </div>
-        `,
-        onClick: {
-          release: onSheepRelease,
-          bomber: onSheepTypeClick("bomber"),
-          shielder: onSheepTypeClick("shielder"),
-          commando: onSheepTypeClick("commando"),
-        },
-      },
-      sheepCountUIID
-    );
-
-    const sheepTotal = Object.keys(gameState.sheep).length;
-    const sheepAlive = Object.values(gameState.sheep).filter(
-      (sheep) => sheep.isAlive
-    ).length;
-
-    // TODO: this doesn't work
-    sheepCountUI.updateNodeHtml("sheep-alive", sheepAlive.toString());
-    sheepCountUI.updateNodeHtml("sheep-total", sheepTotal.toString());
-
     function onSheepDeath(sheep: any) {
       sheep.destroy();
-
-      const sheepTotal = Object.keys(gameState.sheep).length;
-      const sheepAlive = Object.values(gameState.sheep).filter(
-        (sheep) => sheep.isAlive
-      ).length;
-
-      sheepCountUI.updateNodeHtml("sheep-alive", sheepAlive.toString());
-      sheepCountUI.updateNodeHtml("sheep-total", sheepTotal.toString());
     }
   });
 
